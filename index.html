@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="Developer-focused productivity workspace for projects, tasks, issues, and focused work."
+  >
+
+  <title>DevSpace — Developer Productivity</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- =========================================================
+         TOP BAR
+         ========================================================= -->
+    <header class="topbar">
+
+      <div class="topbar-left">
+        <button
+          class="icon-button mobile-menu-button"
+          type="button"
+          aria-label="Open navigation"
+          id="mobile-menu-button"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+
+        <a href="#" class="brand" aria-label="DevSpace home">
+          <span class="brand-mark" aria-hidden="true">&gt;_</span>
+          <span>devspace</span>
+        </a>
+
+        <span class="topbar-divider" aria-hidden="true"></span>
+
+        <button class="workspace-switcher" type="button" id="workspace-switcher">
+          <span class="workspace-dot"></span>
+          <span>Personal Workspace</span>
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m7 10 5 5 5-5"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="topbar-center">
+        <button class="command-trigger" type="button" id="command-trigger">
+          <span class="command-search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="6"></circle>
+              <path d="m16 16 4 4"></path>
+            </svg>
+          </span>
+
+          <span>Search or jump to...</span>
+
+          <kbd>⌘ K</kbd>
+        </button>
+      </div>
+
+      <div class="topbar-actions">
+        <button
+          class="icon-button"
+          type="button"
+          aria-label="Notifications"
+          id="notifications-button"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+            <path d="M10 21h4"></path>
+          </svg>
+
+          <span class="notification-dot" aria-hidden="true"></span>
+        </button>
+
+        <button class="avatar avatar-user" type="button" aria-label="Open profile">
+          AD
+        </button>
+      </div>
+
+    </header>
+
+
+    <!-- =========================================================
+         APPLICATION BODY
+         ========================================================= -->
+    <div class="app-body">
+
+      <!-- =======================================================
+           SIDEBAR
+           ======================================================= -->
+      <aside class="sidebar" id="sidebar">
+
+        <nav class="sidebar-navigation" aria-label="Main navigation">
+
+          <div class="sidebar-section">
+            <p class="sidebar-label">Workspace</p>
+
+            <a href="#overview" class="sidebar-link active" data-view="overview">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+                <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+                <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+                <rect x="14" y="14" width="6" height="6" rx="1"></rect>
+              </svg>
+              <span>Overview</span>
+              <span class="sidebar-shortcut">⌘1</span>
+            </a>
+
+            <a href="#inbox" class="sidebar-link" data-view="inbox">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5h16v14H4z"></path>
+                <path d="M4 14h4l2 3h4l2-3h4"></path>
+              </svg>
+              <span>Inbox</span>
+              <span class="sidebar-count">3</span>
+            </a>
+
+            <a href="#tasks" class="sidebar-link" data-view="tasks">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <path d="m8 12 2.5 2.5L16 9"></path>
+              </svg>
+              <span>My Tasks</span>
+            </a>
+
+            <a href="#projects" class="sidebar-link" data-view="projects">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h6l2 2h8v10H4z"></path>
+              </svg>
+              <span>Projects</span>
+            </a>
+
+            <a href="#issues" class="sidebar-link" data-view="issues">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8"></circle>
+                <path d="M12 8v4l3 2"></path>
+              </svg>
+              <span>Issues</span>
+            </a>
+
+            <a href="#calendar" class="sidebar-link" data-view="calendar">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+                <path d="M8 3v4M16 3v4M4 10h16"></path>
+              </svg>
+              <span>Calendar</span>
+            </a>
+
+            <a href="#focus" class="sidebar-link" data-view="focus">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8"></circle>
+                <path d="M12 8v4l2.5 2"></path>
+              </svg>
+              <span>Focus Mode</span>
+              <span class="focus-indicator"></span>
+            </a>
+
+            <a href="#analytics" class="sidebar-link" data-view="analytics">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 19V9M12 19V5M19 19v-7"></path>
+              </svg>
+              <span>Analytics</span>
+            </a>
+          </div>
+
+
+          <div class="sidebar-section project-section">
+
+            <div class="sidebar-section-header">
+              <p class="sidebar-label">Projects</p>
+
+              <button
+                class="sidebar-add-button"
+                type="button"
+                aria-label="Create project"
+              >
+                +
+              </button>
+            </div>
+
+            <a href="#developer-platform" class="project-link selected">
+              <span class="project-icon project-icon-blue"></span>
+              <span>Developer Platform</span>
+            </a>
+
+            <a href="#stock-engine" class="project-link">
+              <span class="project-icon project-icon-green"></span>
+              <span>Stock Engine</span>
+            </a>
+
+            <a href="#dsa-tracker" class="project-link">
+              <span class="project-icon project-icon-purple"></span>
+              <span>DSA Tracker</span>
+            </a>
+
+          </div>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+          <a href="#settings" class="sidebar-link">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+              <path d="m19.4 15 .1.1a2 2 0 0 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.2a2 2 0 0 1-4 0v-.2a2 2 0 0 0-3.4-1.4l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1A2 2 0 0 0 1.6 11H1.4a2 2 0 0 1 0-4h.2A2 2 0 0 0 3 3.6l-.1-.1A2 2 0 0 1 5.7.7l.1.1A2 2 0 0 0 9.2 1V.8a2 2 0 0 1 4 0V1a2 2 0 0 0 3.4-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1A2 2 0 0 0 20.8 7h.2a2 2 0 0 1 0 4h-.2a2 2 0 0 0-1.4 4Z"></path>
+            </svg>
+            <span>Settings</span>
+          </a>
+
+          <div class="sidebar-status">
+            <span class="status-online"></span>
+            <span>All systems operational</span>
+          </div>
+
+        </div>
+
+      </aside>
+
+
+      <!-- =======================================================
+           MAIN WORKSPACE
+           ======================================================= -->
+      <main class="main-workspace" id="main-workspace">
+
+        <!-- Dashboard Header -->
+        <section class="page-header">
+
+          <div>
+            <p class="eyebrow">PERSONAL WORKSPACE / OVERVIEW</p>
+
+            <h1>Good evening, Avinash</h1>
+
+            <p class="page-subtitle">
+              3 tasks need your attention.
+            </p>
+          </div>
+
+          <div class="page-header-actions">
+
+            <button class="button button-secondary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+              New task
+            </button>
+
+            <button class="button button-primary" type="button">
+              Start focus
+            </button>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             PRODUCTIVITY SUMMARY
+             ===================================================== -->
+        <section class="metric-grid" aria-label="Productivity summary">
+
+          <article class="metric-card">
+
+            <div class="metric-card-header">
+              <span class="metric-label">Focus time</span>
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8"></circle>
+                <path d="M12 8v4l3 2"></path>
+              </svg>
+            </div>
+
+            <strong class="metric-value">4h 32m</strong>
+
+            <span class="metric-detail positive">
+              +38m from yesterday
+            </span>
+
+          </article>
+
+
+          <article class="metric-card">
+
+            <div class="metric-card-header">
+              <span class="metric-label">Tasks completed</span>
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m5 12 4 4L19 6"></path>
+              </svg>
+            </div>
+
+            <strong class="metric-value">12</strong>
+
+            <span class="metric-detail">
+              3 remaining today
+            </span>
+
+          </article>
+
+
+          <article class="metric-card">
+
+            <div class="metric-card-header">
+              <span class="metric-label">Current streak</span>
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21c4 0 7-2.8 7-7 0-3.3-2.1-5.8-4.4-8.2.1 2-1 3.5-2.2 4.4-.2-3.7-2.5-6.7-5.1-8.2.3 3.5-2.3 6.2-2.3 10 0 4.2 3 7 7 7Z"></path>
+              </svg>
+            </div>
+
+            <strong class="metric-value">7 days</strong>
+
+            <span class="metric-detail warning">
+              Best: 12 days
+            </span>
+
+          </article>
+
+        </section>
+
+
+        <!-- =====================================================
+             DASHBOARD GRID
+             ===================================================== -->
+        <div class="dashboard-layout">
+
+
+          <!-- ===================================================
+               TODAY'S FOCUS
+               =================================================== -->
+          <section class="panel focus-panel">
+
+            <header class="panel-header">
+
+              <div>
+                <p class="eyebrow">TODAY</p>
+                <h2>Today's Focus</h2>
+              </div>
+
+              <button class="text-button" type="button">
+                View all
+              </button>
+
+            </header>
+
+
+            <div class="task-list">
+
+              <article class="task-row priority-high">
+
+                <button
+                  class="task-checkbox"
+                  type="button"
+                  aria-label="Mark Implement JWT refresh flow complete"
+                ></button>
+
+                <div class="task-main">
+
+                  <div class="task-title-row">
+                    <h3>Implement JWT refresh flow</h3>
+                    <span class="priority-badge priority-critical">High</span>
+                  </div>
+
+                  <div class="task-meta">
+                    <span class="mono">DEV-142</span>
+                    <span class="task-dot">•</span>
+                    <span>backend</span>
+                    <span class="task-dot">•</span>
+                    <span>Due today</span>
+                  </div>
+
+                </div>
+
+                <div class="task-assignee avatar avatar-small">
+                  AD
+                </div>
+
+              </article>
+
+
+              <article class="task-row priority-medium">
+
+                <button
+                  class="task-checkbox"
+                  type="button"
+                  aria-label="Mark Fix PostgreSQL connection pooling complete"
+                ></button>
+
+                <div class="task-main">
+
+                  <div class="task-title-row">
+                    <h3>Fix PostgreSQL connection pooling</h3>
+                    <span class="priority-badge priority-medium">Medium</span>
+                  </div>
+
+                  <div class="task-meta">
+                    <span class="mono">DEV-138</span>
+                    <span class="task-dot">•</span>
+                    <span>database</span>
+                    <span class="task-dot">•</span>
+                    <span>Due today</span>
+                  </div>
+
+                </div>
+
+                <div class="task-assignee avatar avatar-small">
+                  AD
+                </div>
+
+              </article>
+
+
+              <article class="task-row priority-medium">
+
+                <button
+                  class="task-checkbox"
+                  type="button"
+                  aria-label="Mark Review API error handling complete"
+                ></button>
+
+                <div class="task-main">
+
+                  <div class="task-title-row">
+                    <h3>Review API error handling</h3>
+                    <span class="priority-badge priority-medium">Medium</span>
+                  </div>
+
+                  <div class="task-meta">
+                    <span class="mono">API-028</span>
+                    <span class="task-dot">•</span>
+                    <span>api</span>
+                    <span class="task-dot">•</span>
+                    <span>Tomorrow</span>
+                  </div>
+
+                </div>
+
+                <div class="task-assignee avatar avatar-small">
+                  AD
+                </div>
+
+              </article>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===================================================
+               ACTIVE PROJECTS
+               =================================================== -->
+          <section class="panel projects-panel">
+
+            <header class="panel-header">
+
+              <div>
+                <p class="eyebrow">WORKSPACE</p>
+                <h2>Active Projects</h2>
+              </div>
+
+              <button class="text-button" type="button">
+                All projects
+              </button>
+
+            </header>
+
+
+            <div class="project-progress-list">
+
+              <article class="project-progress">
+
+                <div class="project-progress-heading">
+
+                  <div class="project-name">
+                    <span class="project-icon project-icon-blue"></span>
+                    <strong>Developer Productivity Platform</strong>
+                  </div>
+
+                  <span class="mono progress-number">78%</span>
+
+                </div>
+
+                <div class="progress-track">
+                  <div class="progress-fill progress-blue" style="width: 78%;"></div>
+                </div>
+
+                <div class="project-progress-meta">
+                  <span>34 of 44 tasks</span>
+                  <span>Target: Oct 24</span>
+                </div>
+
+              </article>
+
+
+              <article class="project-progress">
+
+                <div class="project-progress-heading">
+
+                  <div class="project-name">
+                    <span class="project-icon project-icon-green"></span>
+                    <strong>Stock Trading Engine</strong>
+                  </div>
+
+                  <span class="mono progress-number">61%</span>
+
+                </div>
+
+                <div class="progress-track">
+                  <div class="progress-fill progress-green" style="width: 61%;"></div>
+                </div>
+
+                <div class="project-progress-meta">
+                  <span>22 of 36 tasks</span>
+                  <span>Target: Nov 08</span>
+                </div>
+
+              </article>
+
+
+              <article class="project-progress">
+
+                <div class="project-progress-heading">
+
+                  <div class="project-name">
+                    <span class="project-icon project-icon-purple"></span>
+                    <strong>DSA Tracker</strong>
+                  </div>
+
+                  <span class="mono progress-number">42%</span>
+
+                </div>
+
+                <div class="progress-track">
+                  <div class="progress-fill progress-purple" style="width: 42%;"></div>
+                </div>
+
+                <div class="project-progress-meta">
+                  <span>18 of 43 tasks</span>
+                  <span>Target: Dec 12</span>
+                </div>
+
+              </article>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===================================================
+               RECENT ACTIVITY
+               =================================================== -->
+          <section class="panel activity-panel">
+
+            <header class="panel-header">
+
+              <div>
+                <p class="eyebrow">ACTIVITY</p>
+                <h2>Recent Activity</h2>
+              </div>
+
+              <button class="text-button" type="button">
+                View history
+              </button>
+
+            </header>
+
+
+            <div class="activity-list">
+
+              <article class="activity-item">
+
+                <span class="activity-icon activity-success">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m5 12 4 4L19 6"></path>
+                  </svg>
+                </span>
+
+                <div>
+                  <p>
+                    Completed
+                    <strong>Configure SQLAlchemy session handling</strong>
+                  </p>
+
+                  <span class="activity-time">18 minutes ago</span>
+                </div>
+
+              </article>
+
+
+              <article class="activity-item">
+
+                <span class="activity-icon activity-blue">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 20V4M5 11l7-7 7 7"></path>
+                  </svg>
+                </span>
+
+                <div>
+                  <p>
+                    Merged
+                    <strong class="mono">PR #184</strong>
+                    into
+                    <strong>main</strong>
+                  </p>
+
+                  <span class="activity-time">1 hour ago</span>
+                </div>
+
+              </article>
+
+
+              <article class="activity-item">
+
+                <span class="activity-icon activity-warning">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 4 3 20h18L12 4Z"></path>
+                    <path d="M12 9v5M12 17h.01"></path>
+                  </svg>
+                </span>
+
+                <div>
+                  <p>
+                    Deadline approaching for
+                    <strong>API rate limiting</strong>
+                  </p>
+
+                  <span class="activity-time">3 hours ago</span>
+                </div>
+
+              </article>
+
+
+              <article class="activity-item">
+
+                <span class="activity-icon activity-purple">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8"></circle>
+                    <path d="M12 8v4l3 2"></path>
+                  </svg>
+                </span>
+
+                <div>
+                  <p>
+                    Focus session completed
+                    <strong>52 minutes</strong>
+                  </p>
+
+                  <span class="activity-time">Yesterday</span>
+                </div>
+
+              </article>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===================================================
+               NEXT UP
+               =================================================== -->
+          <section class="panel next-panel">
+
+            <header class="panel-header">
+
+              <div>
+                <p class="eyebrow">UP NEXT</p>
+                <h2>Development Queue</h2>
+              </div>
+
+              <span class="queue-count mono">04</span>
+
+            </header>
+
+
+            <div class="queue-list">
+
+              <article class="queue-item">
+
+                <span class="queue-index mono">01</span>
+
+                <div>
+                  <strong>Write integration tests</strong>
+                  <span>backend / testing</span>
+                </div>
+
+                <span class="priority-dot priority-dot-high"></span>
+
+              </article>
+
+
+              <article class="queue-item">
+
+                <span class="queue-index mono">02</span>
+
+                <div>
+                  <strong>Configure Docker development environment</strong>
+                  <span>devops / tooling</span>
+                </div>
+
+                <span class="priority-dot priority-dot-medium"></span>
+
+              </article>
+
+
+              <article class="queue-item">
+
+                <span class="queue-index mono">03</span>
+
+                <div>
+                  <strong>Refactor authentication middleware</strong>
+                  <span>backend / security</span>
+                </div>
+
+                <span class="priority-dot priority-dot-medium"></span>
+
+              </article>
+
+
+              <article class="queue-item">
+
+                <span class="queue-index mono">04</span>
+
+                <div>
+                  <strong>Fix dashboard loading state</strong>
+                  <span>frontend / ui</span>
+                </div>
+
+                <span class="priority-dot priority-dot-low"></span>
+
+              </article>
+
+            </div>
+
+          </section>
+
+        </div>
+
+
+        <!-- =====================================================
+             PROJECT / KANBAN VIEW
+             ===================================================== -->
+        <section class="project-view panel" id="project-view">
+
+          <header class="project-view-header">
+
+            <div class="project-view-title">
+
+              <div class="project-title-row">
+                <span class="project-icon project-icon-blue"></span>
+                <h2>Developer Productivity Platform</h2>
+                <span class="status-pill status-progress">In progress</span>
+              </div>
+
+              <p>
+                Build the developer workspace for planning, focus, and execution.
+              </p>
+
+            </div>
+
+
+            <div class="project-view-actions">
+
+              <button class="button button-secondary" type="button">
+                Filter
+              </button>
+
+              <button class="button button-secondary" type="button">
+                Sort
+              </button>
+
+              <button class="button button-primary" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                Add task
+              </button>
+
+            </div>
+
+          </header>
+
+
+          <!-- Kanban Board -->
+          <div class="kanban-board" id="kanban-board">
+
+
+            <!-- BACKLOG -->
+            <section class="kanban-column" data-status="backlog">
+
+              <header class="kanban-column-header">
+
+                <div class="column-title">
+                  <span class="column-status-dot status-backlog"></span>
+                  <h3>Backlog</h3>
+                  <span class="column-count">3</span>
+                </div>
+
+                <button
+                  class="column-menu"
+                  type="button"
+                  aria-label="Backlog options"
+                >
+                  ···
+                </button>
+
+              </header>
+
+
+              <div class="kanban-cards">
+
+                <article class="kanban-card" data-task-id="DEV-149">
+
+                  <div class="kanban-card-top">
+                    <span class="issue-id mono">DEV-149</span>
+                    <span class="priority-line priority-line-medium">Medium</span>
+                  </div>
+
+                  <h4>Add workspace member roles</h4>
+
+                  <div class="kanban-labels">
+                    <span class="label label-blue">backend</span>
+                    <span class="label label-green">auth</span>
+                  </div>
+
+                  <footer class="kanban-card-footer">
+                    <span class="due-date">Nov 05</span>
+                    <span class="avatar avatar-small">AD</span>
+                  </footer>
+
+                </article>
+
+
+                <article class="kanban-card" data-task-id="DEV-146">
+
+                  <div class="kanban-card-top">
+                    <span class="issue-id mono">DEV-146</span>
+                    <span class="priority-line priority-line-medium">Medium</span>
+                  </div>
+
+                  <h4>Define project permissions</h4>
+
+                  <div class="kanban-labels">
+                    <span class="label label-orange">security</span>
+                  </div>
+
+                  <footer class="kanban-card-footer">
+                    <span class="due-date">Nov 07</span>
+                    <span class="avatar avatar-small">AD</span>
+                  </footer>
+
+                </article>
+
+              </div>
+
+              <button class="add-card-button" type="button">
+                + Add task
+              </button>
+
+            </section>
+
+
+            <!-- TODO -->
+            <section class="kanban-column" data-status="todo">
+
+              <header class="kanban-column-header">
+
+                <div class="column-title">
+                  <span class="column-status-dot status-todo"></span>
+                  <h3>Todo</h3>
+                  <span class="column-count">3</span>
+                </div>
+
+                <button
+                  class="column-menu"
+                  type="button"
+                  aria-label="Todo options"
+                >
+                  ···
+                </button>
+
+              </header>
+
+
+              <div class="kanban-cards">
+              </div>
+
+              <button class="add-card-button" type="button">
+                + Add task
+              </button>
+
+            </section>
+
+
+            <!-- IN PROGRESS -->
+            <section class="kanban-column" data-status="in-progress">
+
+              <header class="kanban-column-header">
+
+                <div class="column-title">
+                  <span class="column-status-dot status-progress"></span>
+                  <h3>In Progress</h3>
+                  <span class="column-count">2</span>
+                </div>
+
+                <button
+                  class="column-menu"
+                  type="button"
+                  aria-label="In progress options"
+                >
+                  ···
+                </button>
+
+              </header>
+
+
+              <div class="kanban-cards">
+              </div>
+
+              <button class="add-card-button" type="button">
+                + Add task
+              </button>
+
+            </section>
+
+
+            <!-- IN REVIEW -->
+            <section class="kanban-column" data-status="review">
+
+              <header class="kanban-column-header">
+
+                <div class="column-title">
+                  <span class="column-status-dot status-review"></span>
+                  <h3>In Review</h3>
+                  <span class="column-count">2</span>
+                </div>
+
+                <button
+                  class="column-menu"
+                  type="button"
+                  aria-label="In review options"
+                >
+                  ···
+                </button>
+
+              </header>
+
+
+              <div class="kanban-cards">
+              </div>
+
+              <button class="add-card-button" type="button">
+                + Add task
+              </button>
+
+            </section>
+
+
+            <!-- DONE -->
+            <section class="kanban-column" data-status="done">
+
+              <header class="kanban-column-header">
+
+                <div class="column-title">
+                  <span class="column-status-dot status-done"></span>
+                  <h3>Done</h3>
+                  <span class="column-count">4</span>
+                </div>
+
+                <button
+                  class="column-menu"
+                  type="button"
+                  aria-label="Done options"
+                >
+                  ···
+                </button>
+
+              </header>
+
+
+              <div class="kanban-cards">
+
+              </div>
+
+              <button class="add-card-button" type="button">
+                + Add task
+              </button>
+
+            </section>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             FOCUS MODE PREVIEW
+             ===================================================== -->
+        <section class="focus-mode panel" id="focus-mode">
+
+          <div class="focus-mode-inner">
+
+            <div class="focus-mode-header">
+
+              <div>
+                <p class="eyebrow">FOCUS MODE</p>
+
+                <h2>Implement authentication middleware</h2>
+
+                <p class="focus-task-meta">
+                  <span class="mono">DEV-142</span>
+                  <span>•</span>
+                  <span>Developer Platform</span>
+                </p>
+              </div>
+
+              <button
+                class="icon-button"
+                type="button"
+                aria-label="Close focus mode"
+              >
+                ×
+              </button>
+
+            </div>
+
+
+            <div class="focus-timer-area">
+
+              <span class="focus-status">DEEP WORK</span>
+
+              <time class="focus-timer" datetime="PT1H42M18S">
+                01:42:18
+              </time>
+
+              <p class="focus-timer-description">
+                Stay focused on the current task.
+              </p>
+
+            </div>
+
+
+            <div class="focus-actions">
+
+              <button class="button button-secondary" type="button">
+                Pause
+              </button>
+
+              <button class="button button-primary" type="button">
+                Complete task
+              </button>
+
+            </div>
+
+
+            <div class="focus-progress">
+
+              <div class="focus-progress-header">
+                <span>Today's progress</span>
+                <span class="mono">78%</span>
+              </div>
+
+              <div class="progress-track">
+                <div
+                  class="progress-fill progress-blue"
+                  style="width: 78%;"
+                ></div>
+              </div>
+
+              <div class="focus-progress-meta">
+                <span>4h 32m focused</span>
+                <span>5h 48m goal</span>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             STATUS BAR
+             ===================================================== -->
+        <footer class="statusbar">
+
+          <div class="statusbar-left">
+
+            <span class="statusbar-item">
+              <span class="status-online"></span>
+              Operational
+            </span>
+
+            <span class="statusbar-separator"></span>
+
+            <span class="statusbar-item mono">
+              main
+            </span>
+
+            <span class="statusbar-item">
+              Last synced 2m ago
+            </span>
+
+          </div>
+
+
+          <div class="statusbar-right">
+
+            <span class="statusbar-shortcut">
+              <kbd>⌘ P</kbd>
+              Command
+            </span>
+
+            <span class="statusbar-shortcut">
+              <kbd>⌘ Enter</kbd>
+              Focus
+            </span>
+
+          </div>
+
+        </footer>
+
+      </main>
+
+    </div>
+
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
