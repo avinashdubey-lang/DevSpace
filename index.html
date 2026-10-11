@@ -1000,6 +1000,93 @@
 
         </section>
 
+        
+      <!-- Create Task Modal -->
+      <div
+        class="task-modal hidden"
+        id="task-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="task-modal-title"
+      >
+        <div class="task-modal-backdrop" data-close-modal></div>
+
+        <div class="task-modal-content">
+          <header class="task-modal-header">
+            <h2 id="task-modal-title">Create task</h2>
+
+            <button
+              class="task-modal-close"
+              type="button"
+              data-close-modal
+              aria-label="Close task form"
+            >
+              &times;
+            </button>
+          </header>
+
+          <form id="create-task-form">
+            <div class="form-field">
+              <label for="task-title">Task title</label>
+              <input
+                id="task-title"
+                name="title"
+                type="text"
+                placeholder="e.g. Implement task creation"
+                required
+                maxlength="120"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="task-priority">Priority</label>
+              <select id="task-priority" name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="task-status">Status</label>
+              <select id="task-status" name="status">
+                <option value="backlog">Backlog</option>
+                <option value="todo">Todo</option>
+                <option value="in-progress">In Progress</option>
+                <option value="review">In Review</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="task-labels">Labels</label>
+              <input
+                id="task-labels"
+                name="labels"
+                type="text"
+                placeholder="frontend, ui"
+              />
+              <p class="form-hint">Separate labels with commas.</p>
+            </div>
+
+            <footer class="task-modal-actions">
+              <button
+                class="button button-secondary"
+                type="button"
+                data-close-modal
+              >
+                Cancel
+              </button>
+
+              <button class="button button-primary" type="submit">
+                Create task
+              </button>
+            </footer>
+          </form>
+        </div>
+      </div>
+
+
 
         <!-- =====================================================
              FOCUS MODE PREVIEW
