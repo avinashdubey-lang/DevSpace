@@ -6,9 +6,6 @@ import {
 import { initializeEvents } from "./events.js";
 
 async function initializeApp() {
-  renderKanban();
-  renderView();
-
   initializeEvents();
 
   await loadTasks();

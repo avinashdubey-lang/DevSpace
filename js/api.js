@@ -1,11 +1,18 @@
 import { state } from "./state.js";
 
-export function fakeFetchTasks() {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(state.tasks);
-    }, 800);
-  });
+const STORAGE_KEY = "devspace.tasks";
+
+export function saveTasks() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(state.tasks)
+    );
+    return true;
+  } catch (error) {
+    console.error("Failed to save tasks:", error);
+    return false;
+  }
 }
 
 export async function loadTasks() {
@@ -13,14 +20,28 @@ export async function loadTasks() {
   state.error = null;
 
   try {
-    const tasks = await fakeFetchTasks();
+    const savedTasks = localStorage.getItem(STORAGE_KEY);
 
-    state.tasks = tasks;
+    if (savedTasks === null) {
+      // First visit: preserve the sample tasks.
+      saveTasks();
+      return;
+    }
+
+    const parsedTasks = JSON.parse(savedTasks);
+
+    if (!Array.isArray(parsedTasks)) {
+      throw new Error("Saved tasks must be an array.");
+    }
+
+    state.tasks = parsedTasks;
   } catch (error) {
     state.error =
       error instanceof Error
         ? error.message
         : String(error);
+
+    console.error("Failed to load tasks:", error);
   } finally {
     state.loading = false;
   }

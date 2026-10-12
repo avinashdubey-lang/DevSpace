@@ -2199,3 +2199,17 @@ kbd {
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+.kanban-column.drag-over {
+  outline: 1px dashed var(--accent-color, #818cf8);
+  outline-offset: -4px;
+  background-color: rgb(129 140 248 / 6%);
+}
+
+.kanban-card[draggable="true"] {
+  cursor: grab;
+}
+
+.kanban-card[draggable="true"]:active {
+  cursor: grabbing;
+}

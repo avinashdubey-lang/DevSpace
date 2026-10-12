@@ -28,3 +28,23 @@ export function createTask({ title, priority, status, labels }) {
 
   return task;
 }
+
+
+export function updateTask(taskId, updates) {
+  const task = state.tasks.find(
+    task => task.id === taskId
+  );
+
+  if (!task) {
+    return null;
+  }
+
+  Object.assign(task, updates);
+
+  if (updates.status !== undefined) {
+    task.completed = updates.status === "done";
+  }
+
+  return task;
+}
+

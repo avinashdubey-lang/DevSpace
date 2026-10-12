@@ -16,6 +16,7 @@ function createTaskCard(task) {
   const card = document.createElement("article");
 
   card.classList.add("kanban-card");
+  card.draggable = true;
 
   if (task.completed) {
     card.classList.add("completed-card");
