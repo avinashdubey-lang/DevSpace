@@ -27,6 +27,8 @@
           class="icon-button mobile-menu-button"
           type="button"
           aria-label="Open navigation"
+          aria-expanded="false"
+          aria-controls="sidebar"
           id="mobile-menu-button"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -226,6 +228,8 @@
 
       </aside>
 
+      <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+
 
       <!-- =======================================================
            MAIN WORKSPACE
@@ -247,7 +251,11 @@
 
           <div class="page-header-actions">
 
-            <button class="button button-secondary" type="button">
+            <button
+              class="button button-secondary add-card-button"
+              type="button"
+              id="overview-add-task"
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 5v14M5 12h14"></path>
               </svg>
@@ -801,7 +809,7 @@
                 <div class="column-title">
                   <span class="column-status-dot status-backlog"></span>
                   <h3>Backlog</h3>
-                  <span class="column-count">3</span>
+                  <span class="column-count">0</span>
                 </div>
 
                 <button
@@ -876,7 +884,7 @@
                 <div class="column-title">
                   <span class="column-status-dot status-todo"></span>
                   <h3>Todo</h3>
-                  <span class="column-count">3</span>
+                  <span class="column-count">0</span>
                 </div>
 
                 <button
@@ -908,7 +916,7 @@
                 <div class="column-title">
                   <span class="column-status-dot status-progress"></span>
                   <h3>In Progress</h3>
-                  <span class="column-count">2</span>
+                  <span class="column-count">0</span>
                 </div>
 
                 <button
@@ -940,7 +948,7 @@
                 <div class="column-title">
                   <span class="column-status-dot status-review"></span>
                   <h3>In Review</h3>
-                  <span class="column-count">2</span>
+                  <span class="column-count">0</span>
                 </div>
 
                 <button
@@ -972,7 +980,7 @@
                 <div class="column-title">
                   <span class="column-status-dot status-done"></span>
                   <h3>Done</h3>
-                  <span class="column-count">4</span>
+                  <span class="column-count">0</span>
                 </div>
 
                 <button
@@ -1070,6 +1078,16 @@
             </div>
 
             <footer class="task-modal-actions">
+              
+              <button
+                class="button button-danger"
+                type="button"
+                id="delete-task-button"
+                hidden
+              >
+                Delete task
+              </button>
+
               <button
                 class="button button-secondary"
                 type="button"
@@ -1082,6 +1100,7 @@
                 Create task
               </button>
             </footer>
+
           </form>
         </div>
       </div>
@@ -1171,6 +1190,27 @@
 
           </div>
 
+        </section>
+
+
+        <!-- =====================================================
+             AUXILIARY / PLACEHOLDER VIEW
+             ===================================================== -->
+        <section class="placeholder-view panel hidden" id="placeholder-view">
+          <div class="placeholder-content">
+            <span class="placeholder-badge">Coming soon</span>
+            <h2 class="placeholder-title" id="placeholder-title">Inbox</h2>
+            <p class="placeholder-description" id="placeholder-description">
+              This section is under active development.
+            </p>
+            <button
+              class="button button-secondary"
+              type="button"
+              id="placeholder-back-button"
+            >
+              Back to Overview
+            </button>
+          </div>
         </section>
 
 

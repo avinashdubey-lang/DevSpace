@@ -1942,11 +1942,30 @@ kbd {
   }
 
   /*
-    Future JavaScript can add .sidebar-open to the body
-    to reveal this navigation.
+    Reveals mobile navigation drawer.
   */
   .sidebar-open .sidebar {
     transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: var(--topbar-height) 0 0 0;
+    background: rgb(0 0 0 / 65%);
+    z-index: 85;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+    display: block;
+  }
+
+  .sidebar-open .sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
   }
 
   .main-workspace {
@@ -2212,4 +2231,88 @@ kbd {
 
 .kanban-card[draggable="true"]:active {
   cursor: grabbing;
+}
+
+/* Destructive action button */
+.button-danger {
+  background: #3b1f24;
+  color: #f87171;
+  border: 1px solid #71333b;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.button-danger:hover {
+  background: #51252c;
+  border-color: #a94450;
+}
+
+.button-danger:focus-visible {
+  outline: 2px solid #f87171;
+  outline-offset: 2px;
+}
+
+.button-danger:active {
+  background: #672b34;
+}
+
+.button-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sidebar backdrop default (hidden on desktop) */
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ============================================================
+   22. AUXILIARY / PLACEHOLDER VIEW
+   ============================================================ */
+
+.placeholder-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.placeholder-view.hidden {
+  display: none !important;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 440px;
+  gap: 16px;
+}
+
+.placeholder-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.placeholder-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0;
+}
+
+.placeholder-description {
+  font-size: 0.95rem;
+  color: #9ca3af;
+  margin: 0 0 8px;
+  line-height: 1.5;
 }

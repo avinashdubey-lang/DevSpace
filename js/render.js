@@ -11,6 +11,9 @@ const dashboardElements = {
 
 const projectView = document.querySelector("#project-view");
 const focusMode = document.querySelector("#focus-mode");
+const placeholderView = document.querySelector("#placeholder-view");
+const placeholderTitle = document.querySelector("#placeholder-title");
+const placeholderDescription = document.querySelector("#placeholder-description");
 
 function createTaskCard(task) {
   const card = document.createElement("article");
@@ -123,30 +126,69 @@ export function renderKanban() {
   });
 }
 
+function getEl(cached, selector) {
+  return (typeof document !== "undefined" ? document.querySelector(selector) : null) || cached;
+}
+
 export function renderView() {
   const view = state.activeView;
 
-  // Hide all major views first
-  dashboardElements.pageHeader?.classList.add("hidden");
-  dashboardElements.metrics?.classList.add("hidden");
-  dashboardElements.dashboardLayout?.classList.add("hidden");
+  const pageHeader = getEl(dashboardElements.pageHeader, ".page-header");
+  const metrics = getEl(dashboardElements.metrics, ".metric-grid");
+  const dashboardLayout = getEl(dashboardElements.dashboardLayout, ".dashboard-layout");
+  const projView = getEl(projectView, "#project-view");
+  const focMode = getEl(focusMode, "#focus-mode");
+  const placeView = getEl(placeholderView, "#placeholder-view");
+  const placeTitle = getEl(placeholderTitle, "#placeholder-title");
+  const placeDesc = getEl(placeholderDescription, "#placeholder-description");
 
-  projectView?.classList.add("hidden");
-  focusMode?.classList.add("hidden");
+  // Hide all major views first
+  pageHeader?.classList.add("hidden");
+  metrics?.classList.add("hidden");
+  dashboardLayout?.classList.add("hidden");
+
+  projView?.classList.add("hidden");
+  focMode?.classList.add("hidden");
+  placeView?.classList.add("hidden");
 
   // Show the appropriate view
   if (view === "overview") {
-    dashboardElements.pageHeader?.classList.remove("hidden");
-    dashboardElements.metrics?.classList.remove("hidden");
-    dashboardElements.dashboardLayout?.classList.remove("hidden");
-  }
+    pageHeader?.classList.remove("hidden");
+    metrics?.classList.remove("hidden");
+    dashboardLayout?.classList.remove("hidden");
+  } else if (view === "projects" || view === "tasks" || view === "issues") {
+    projView?.classList.remove("hidden");
+  } else if (view === "focus") {
+    focMode?.classList.remove("hidden");
+  } else {
+    const auxiliaryViews = {
+      inbox: {
+        title: "Inbox",
+        description: "Unified activity, mentions, and notifications are under active development."
+      },
+      calendar: {
+        title: "Calendar",
+        description: "Schedule, task deadlines, and milestone views are under active development."
+      },
+      analytics: {
+        title: "Analytics",
+        description: "Productivity metrics, velocity charts, and focus logs are under active development."
+      }
+    };
 
-  if (view === "projects" || view === "tasks" || view === "issues") {
-    projectView?.classList.remove("hidden");
-  }
+    const target = auxiliaryViews[view] || {
+      title: view.charAt(0).toUpperCase() + view.slice(1),
+      description: "This section is under active development. Check back soon for updates."
+    };
 
-  if (view === "focus") {
-    focusMode?.classList.remove("hidden");
+    if (placeTitle) {
+      placeTitle.textContent = target.title;
+    }
+    if (placeDesc) {
+      placeDesc.textContent = target.description;
+    }
+
+    placeView?.classList.remove("hidden");
   }
 
   updateActiveSidebarLink();

@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { createTask, updateTask } from "./tasks.js";
+import { createTask, updateTask, deleteTask } from "./tasks.js";
 import { renderKanban, renderView } from "./render.js";
 import { saveTasks } from "./api.js";
 
@@ -17,6 +17,9 @@ const taskModalSubmit = createTaskForm?.querySelector(
 );
 const taskLabelsInput = document.querySelector("#task-labels");
 const taskPrioritySelect = document.querySelector("#task-priority");
+const deleteTaskButton = document.querySelector("#delete-task-button");
+const mobileMenuButton = document.querySelector("#mobile-menu-button");
+const sidebarBackdrop = document.querySelector("#sidebar-backdrop");
 
 function selectTask(taskId) {
   state.selectedTaskId = taskId;
@@ -39,12 +42,40 @@ function handleKanbanClick(event) {
 }
 
 
+function getMobileButton() {
+  return (typeof document !== "undefined" ? document.querySelector("#mobile-menu-button") : null) || mobileMenuButton;
+}
+
+export function closeMobileSidebar() {
+  if (typeof document !== "undefined" && document.body) {
+    document.body.classList.remove("sidebar-open");
+  }
+  const btn = getMobileButton();
+  if (btn && typeof btn.setAttribute === "function") {
+    btn.setAttribute("aria-expanded", "false");
+  }
+}
+
+export function toggleMobileSidebar() {
+  if (typeof document !== "undefined" && document.body) {
+    const isOpen = document.body.classList.toggle("sidebar-open");
+    const btn = getMobileButton();
+    if (btn && typeof btn.setAttribute === "function") {
+      btn.setAttribute("aria-expanded", String(isOpen));
+    }
+    return isOpen;
+  }
+  return false;
+}
+
 function handleSidebarClick(event) {
   const link = event.target.closest(".sidebar-link[data-view]");
 
   if (!link) return;
 
   event.preventDefault();
+
+  closeMobileSidebar();
 
   const view = link.dataset.view;
 
@@ -57,28 +88,68 @@ function handleSidebarClick(event) {
   renderView();
 }
 
+function handlePlaceholderClick(event) {
+  const button = event.target.closest("#placeholder-back-button");
+  if (!button) return;
+
+  state.activeView = "overview";
+  renderView();
+}
+
+function handleKeydown(event) {
+  if (event.key === "Escape") {
+    if (document.body.classList.contains("sidebar-open")) {
+      closeMobileSidebar();
+      return;
+    }
+
+    if (taskModal && !taskModal.classList.contains("hidden")) {
+      taskModal.classList.add("hidden");
+      createTaskForm?.reset();
+      deleteTaskButton.hidden = true;
+      editingTaskId = null;
+      taskModalTitle.textContent = "Create task";
+      taskModalSubmit.textContent = "Create task";
+    }
+  }
+}
+
+let eventsInitialized = false;
+
 export function initializeEvents() {
+  if (eventsInitialized) return;
+  eventsInitialized = true;
+
   kanbanBoard?.addEventListener("click", handleKanbanClick);
   document.addEventListener("click", handleSidebarClick);
   document.addEventListener("click", handleAddTaskClick);
   document.addEventListener("click", handleTaskModalClick);
+  document.addEventListener("click", handlePlaceholderClick);
+  mobileMenuButton?.addEventListener("click", toggleMobileSidebar);
+  sidebarBackdrop?.addEventListener("click", closeMobileSidebar);
+  document.addEventListener("keydown", handleKeydown);
 
   createTaskForm?.addEventListener(
-  "submit",
-  handleCreateTaskSubmit
-);
+    "submit",
+    handleCreateTaskSubmit
+  );
   kanbanBoard?.addEventListener("dragstart", handleDragStart);
   kanbanBoard?.addEventListener("dragover", handleDragOver);
   kanbanBoard?.addEventListener("dragleave", handleDragLeave);
   kanbanBoard?.addEventListener("drop", handleDrop);
   kanbanBoard?.addEventListener("dragend", handleDragEnd);
+
+  deleteTaskButton?.addEventListener(
+    "click",
+    handleDeleteTask
+  );
 }
 
 
 
 function handleAddTaskClick(event) {
   const button = event.target.closest(
-    ".add-card-button, .project-view-actions .button-primary"
+    ".add-card-button, .project-view-actions .button-primary, #overview-add-task, .page-header-actions .button-secondary"
   );
 
   // Ignore every click that isn't an Add task button.
@@ -89,6 +160,7 @@ function handleAddTaskClick(event) {
   editingTaskId = null;
   taskModalTitle.textContent = "Create task";
   taskModalSubmit.textContent = "Create task";
+  deleteTaskButton.hidden = true;
   createTaskForm.reset();
 
   taskModal.classList.remove("hidden");
@@ -97,6 +169,8 @@ function handleAddTaskClick(event) {
 
   if (column) {
     taskStatusSelect.value = column.dataset.status;
+  } else {
+    taskStatusSelect.value = "todo";
   }
 
   taskTitleInput.focus();
@@ -108,6 +182,7 @@ function handleTaskModalClick(event) {
 
   taskModal.classList.add("hidden");
   createTaskForm.reset();
+  deleteTaskButton.hidden = true;
 
   editingTaskId = null;
   taskModalTitle.textContent = "Create task";
@@ -138,10 +213,13 @@ function handleCreateTaskSubmit(event) {
       .filter(Boolean)
   };
 
-  if (editingTaskId !== null) {
-    updateTask(editingTaskId, taskData);
-  } else {
-    createTask(taskData);
+  const result =
+    editingTaskId !== null
+      ? updateTask(editingTaskId, taskData)
+      : createTask(taskData);
+
+  if (!result) {
+    return;
   }
 
   saveTasks();
@@ -152,6 +230,37 @@ function handleCreateTaskSubmit(event) {
   taskModal.classList.add("hidden");
   taskModalTitle.textContent = "Create task";
   taskModalSubmit.textContent = "Create task";
+  deleteTaskButton.hidden = true;
+
+  renderKanban();
+}
+
+function handleDeleteTask() {
+  if (editingTaskId === null) return;
+
+  const confirmed = confirm(
+    "Are you sure you want to delete this task?"
+  );
+
+  if (!confirmed) return;
+
+  const deleted = deleteTask(editingTaskId);
+
+  if (!deleted) return;
+
+  if (state.selectedTaskId === editingTaskId) {
+    state.selectedTaskId = null;
+  }
+
+  saveTasks();
+
+  createTaskForm.reset();
+  editingTaskId = null;
+
+  taskModal.classList.add("hidden");
+  taskModalTitle.textContent = "Create task";
+  taskModalSubmit.textContent = "Create task";
+  deleteTaskButton.hidden = true;
 
   renderKanban();
 }
@@ -169,6 +278,8 @@ function openEditTaskModal(taskId) {
 
   taskModalTitle.textContent = "Edit task";
   taskModalSubmit.textContent = "Save changes";
+
+  deleteTaskButton.hidden = false;
 
   taskTitleInput.value = task.title;
   taskPrioritySelect.value = task.priority;
@@ -230,7 +341,9 @@ function handleDrop(event) {
   const task = state.tasks.find(task => task.id === taskId);
   if (!task || task.status === newStatus) return;
 
-  updateTask(taskId, { status: newStatus });
+  const updated = updateTask(taskId, { status: newStatus });
+  if (!updated) return;
+
   saveTasks();
   renderKanban();
 }
