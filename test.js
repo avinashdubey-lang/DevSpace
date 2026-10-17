@@ -1,7 +1,7 @@
 import test, { beforeEach, afterEach, after } from "node:test";
 import assert from "node:assert/strict";
 
-import { state } from "./js/state.js";
+import { state, projects } from "./js/state.js";
 import {
   createTask,
   updateTask,
@@ -15,9 +15,21 @@ import {
   createTodayFocusRow,
   renderOverview,
   renderOverviewMetrics,
-  renderTodayFocus
+  renderTodayFocus,
+  renderProjectHeader,
+  renderKanban,
+  renderView
 } from "./js/render.js";
-import { completeTaskById } from "./js/events.js";
+import {
+  completeTaskById,
+  closeTaskModal,
+  openCreateTaskModal,
+  openEditTaskModal,
+  handleNavigationClick,
+  handleKeydown,
+  setLastFocusedElement,
+  getLastFocusedElement
+} from "./js/events.js";
 import {
   saveTasks,
   loadTasks,
@@ -1434,5 +1446,569 @@ test("Phase 2: Task CRUD and drop actions update Overview dashboard synchronousl
     assert.equal(elements.todayFocusList.children.length, 3);
   } finally {
     globalThis.document = prevDoc;
+  }
+});
+
+// ============================================================================
+// PHASE 3: Remaining Vanilla JavaScript Interaction Audit & Usability Tests
+// ============================================================================
+
+function createPhase3DomEnvironment() {
+  const elements = new Map();
+
+  function makeEl(tagName, id = "", classes = [], attrs = {}) {
+    const classSet = new Set(classes);
+    const attrMap = new Map(Object.entries(attrs));
+    const children = [];
+    const eventListeners = new Map();
+
+    const el = {
+      tagName: tagName.toUpperCase(),
+      id,
+      dataset: {},
+      children,
+      get childNodes() { return children; },
+      get classList() {
+        return {
+          add(...cls) { cls.forEach(c => classSet.add(c)); },
+          remove(...cls) { cls.forEach(c => classSet.delete(c)); },
+          contains(c) { return classSet.has(c); },
+          toggle(c, force) {
+            const has = force !== undefined ? force : !classSet.has(c);
+            if (has) classSet.add(c);
+            else classSet.delete(c);
+            return has;
+          }
+        };
+      },
+      textContent: "",
+      value: "",
+      hidden: false,
+      type: "text",
+      style: {},
+      get innerHTML() {
+        return children.map(c => c.textContent).join("");
+      },
+      set innerHTML(val) {
+        if (val === "") children.length = 0;
+      },
+      appendChild(child) {
+        children.push(child);
+        child.parentElement = el;
+        return child;
+      },
+      setAttribute(k, v) { attrMap.set(k, String(v)); },
+      getAttribute(k) { return attrMap.has(k) ? attrMap.get(k) : null; },
+      removeAttribute(k) { attrMap.delete(k); },
+      addEventListener(type, fn) {
+        if (!eventListeners.has(type)) eventListeners.set(type, []);
+        eventListeners.get(type).push(fn);
+      },
+      dispatchEvent(event) {
+        const list = eventListeners.get(event.type) || [];
+        list.forEach(fn => fn(event));
+      },
+      focus() {
+        if (doc) doc.activeElement = el;
+      },
+      reset() {
+        el.value = "";
+      },
+      closest(sel) {
+        let curr = el;
+        while (curr) {
+          if (matches(curr, sel)) return curr;
+          curr = curr.parentElement;
+        }
+        return null;
+      },
+      contains(target) {
+        if (target === el) return true;
+        for (const child of children) {
+          if (child.contains && child.contains(target)) return true;
+        }
+        return false;
+      },
+      querySelector(sel) { return findInTree(this, sel); },
+      querySelectorAll(sel) {
+        const results = [];
+        collectInTree(this, sel, results);
+        return results;
+      }
+    };
+
+    if (id) elements.set(`#${id}`, el);
+    return el;
+  }
+
+  function matchSingle(node, sel) {
+    if (!node) return false;
+    sel = sel.trim();
+    if (!sel) return false;
+
+    // Handle :not(...)
+    const notMatch = sel.match(/^(.+?):not\((.+?)\)$/);
+    if (notMatch) {
+      const [, base, notCond] = notMatch;
+      return matchSingle(node, base) && !matchSingle(node, notCond);
+    }
+
+    // Extract attributes: [attr] or [attr="val"]
+    let remainder = sel;
+    const attrRegex = /\[([a-zA-Z0-9_-]+)(?:=(['"]?)(.*?)\2)?\]/g;
+    let match;
+    while ((match = attrRegex.exec(sel)) !== null) {
+      const [full, attrName, , attrVal] = match;
+      const key = attrName.startsWith("data-")
+        ? attrName.slice(5).replace(/-([a-z])/g, (_, l) => l.toUpperCase())
+        : null;
+
+      let hasAttr = false;
+      let val = null;
+      if (key && node.dataset && key in node.dataset) {
+        hasAttr = true;
+        val = node.dataset[key];
+      } else if (node.getAttribute && node.getAttribute(attrName) !== null) {
+        hasAttr = true;
+        val = node.getAttribute(attrName);
+      }
+
+      if (!hasAttr) return false;
+      if (attrVal !== undefined && val !== attrVal) return false;
+      remainder = remainder.replace(full, "");
+    }
+
+    if (!remainder) return true;
+
+    // Extract ID
+    const idMatch = remainder.match(/#([a-zA-Z0-9_-]+)/);
+    if (idMatch) {
+      if (node.id !== idMatch[1]) return false;
+      remainder = remainder.replace(idMatch[0], "");
+    }
+
+    // Extract classes
+    const classRegex = /\.([a-zA-Z0-9_-]+)/g;
+    while ((match = classRegex.exec(remainder)) !== null) {
+      if (!node.classList || !node.classList.contains(match[1])) return false;
+    }
+    remainder = remainder.replace(classRegex, "");
+
+    // Remainder is tag name if present
+    if (remainder) {
+      if (node.tagName && node.tagName.toLowerCase() !== remainder.toLowerCase()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function matches(node, selector) {
+    if (!node || !selector) return false;
+    const parts = selector.split(",");
+    return parts.some(part => matchSingle(node, part));
+  }
+
+  function findInTree(root, selector) {
+    for (const child of root.children) {
+      if (matches(child, selector)) return child;
+      const found = findInTree(child, selector);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function collectInTree(root, selector, acc) {
+    for (const child of root.children) {
+      if (matches(child, selector)) acc.push(child);
+      collectInTree(child, selector, acc);
+    }
+  }
+
+  const body = makeEl("body");
+  const doc = {
+    body,
+    activeElement: body,
+    createElement(tag) { return makeEl(tag); },
+    querySelector(selector) {
+      if (elements.has(selector)) return elements.get(selector);
+      return findInTree(body, selector);
+    },
+    querySelectorAll(selector) {
+      const results = [];
+      collectInTree(body, selector, results);
+      return results;
+    },
+    addEventListener: () => {}
+  };
+
+  // 1. Project header elements
+  const projectTitleIcon = makeEl("span", "project-title-icon", ["project-icon", "project-icon-blue"]);
+  const projectTitleHeading = makeEl("h2", "project-title-heading");
+  const projectStatusPill = makeEl("span", "project-status-pill", ["status-pill", "status-progress"]);
+  const projectTitleDescription = makeEl("p", "project-title-description");
+  const kanbanSortButton = makeEl("button", "kanban-sort-button", ["button"]);
+  const kanbanFilterButton = makeEl("button", "kanban-filter-button", ["button"]);
+  const projectView = makeEl("div", "project-view");
+
+  body.appendChild(projectTitleIcon);
+  body.appendChild(projectTitleHeading);
+  body.appendChild(projectStatusPill);
+  body.appendChild(projectTitleDescription);
+  body.appendChild(kanbanSortButton);
+  body.appendChild(kanbanFilterButton);
+  body.appendChild(projectView);
+
+  // 2. Project links in sidebar
+  const linkDev = makeEl("a", "", ["project-link", "selected"], { "data-project-id": "developer-platform" });
+  linkDev.dataset.projectId = "developer-platform";
+  const linkStock = makeEl("a", "", ["project-link"], { "data-project-id": "stock-engine" });
+  linkStock.dataset.projectId = "stock-engine";
+  const linkDsa = makeEl("a", "", ["project-link"], { "data-project-id": "dsa-tracker" });
+  linkDsa.dataset.projectId = "dsa-tracker";
+
+  body.appendChild(linkDev);
+  body.appendChild(linkStock);
+  body.appendChild(linkDsa);
+
+  // 3. Kanban board
+  const kanbanBoard = makeEl("div", "kanban-board");
+  const colTodo = makeEl("div", "", ["kanban-column"], { "data-status": "todo" });
+  colTodo.dataset.status = "todo";
+  const cardsTodo = makeEl("div", "", ["kanban-cards"]);
+  const countTodo = makeEl("span", "", ["column-count"]);
+  colTodo.appendChild(cardsTodo);
+  colTodo.appendChild(countTodo);
+  kanbanBoard.appendChild(colTodo);
+
+  const colDone = makeEl("div", "", ["kanban-column"], { "data-status": "done" });
+  colDone.dataset.status = "done";
+  const cardsDone = makeEl("div", "", ["kanban-cards"]);
+  const countDone = makeEl("span", "", ["column-count"]);
+  colDone.appendChild(cardsDone);
+  colDone.appendChild(countDone);
+  kanbanBoard.appendChild(colDone);
+
+  body.appendChild(kanbanBoard);
+
+  // 4. Modal elements
+  const taskModal = makeEl("div", "task-modal", ["task-modal", "hidden"]);
+  const createTaskForm = makeEl("form", "create-task-form");
+  const taskTitleInput = makeEl("input", "task-title");
+  const taskPrioritySelect = makeEl("select", "task-priority");
+  const taskStatusSelect = makeEl("select", "task-status");
+  const taskLabelsInput = makeEl("input", "task-labels");
+  const taskModalTitle = makeEl("h3", "task-modal-title");
+  const taskModalSubmit = makeEl("button", "", ["button", "button-primary"], { type: "submit" });
+  const deleteTaskButton = makeEl("button", "delete-task-button", ["button", "button-danger"]);
+  deleteTaskButton.hidden = true;
+  const modalCloseBtn = makeEl("button", "", ["button-close"], { "data-close-modal": "true" });
+
+  createTaskForm.appendChild(taskModalTitle);
+  createTaskForm.appendChild(taskTitleInput);
+  createTaskForm.appendChild(taskPrioritySelect);
+  createTaskForm.appendChild(taskStatusSelect);
+  createTaskForm.appendChild(taskLabelsInput);
+  createTaskForm.appendChild(taskModalSubmit);
+  createTaskForm.appendChild(deleteTaskButton);
+  createTaskForm.appendChild(modalCloseBtn);
+  taskModal.appendChild(createTaskForm);
+  body.appendChild(taskModal);
+
+  // 5. Placeholder view
+  const placeholderView = makeEl("div", "placeholder-view", ["hidden"]);
+  const placeholderTitle = makeEl("h2", "placeholder-title");
+  const placeholderDescription = makeEl("p", "placeholder-description");
+  const placeholderBackButton = makeEl("button", "placeholder-back-button");
+  placeholderView.appendChild(placeholderTitle);
+  placeholderView.appendChild(placeholderDescription);
+  placeholderView.appendChild(placeholderBackButton);
+  body.appendChild(placeholderView);
+
+  return {
+    document: doc,
+    body,
+    elements: {
+      projectTitleIcon,
+      projectTitleHeading,
+      projectStatusPill,
+      projectTitleDescription,
+      kanbanSortButton,
+      kanbanFilterButton,
+      projectView,
+      linkDev,
+      linkStock,
+      linkDsa,
+      kanbanBoard,
+      colTodo,
+      cardsTodo,
+      countTodo,
+      colDone,
+      cardsDone,
+      countDone,
+      taskModal,
+      createTaskForm,
+      taskTitleInput,
+      taskPrioritySelect,
+      taskStatusSelect,
+      taskLabelsInput,
+      taskModalTitle,
+      taskModalSubmit,
+      deleteTaskButton,
+      modalCloseBtn,
+      placeholderView,
+      placeholderTitle,
+      placeholderDescription,
+      placeholderBackButton
+    }
+  };
+}
+
+test("Phase 3: renderProjectHeader updates header and active project link", () => {
+  const { document: mockDoc, elements } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    state.selectedProjectId = "developer-platform";
+    renderProjectHeader();
+
+    assert.equal(elements.projectTitleHeading.textContent, "Developer Productivity Platform");
+    assert.equal(elements.projectStatusPill.textContent, "In progress");
+    assert.equal(elements.linkDev.classList.contains("selected"), true);
+    assert.equal(elements.linkStock.classList.contains("selected"), false);
+    assert.equal(elements.linkDsa.classList.contains("selected"), false);
+
+    state.selectedProjectId = "stock-engine";
+    renderProjectHeader();
+
+    assert.equal(elements.projectTitleHeading.textContent, "Stock Trading Engine");
+    assert.equal(elements.projectStatusPill.textContent, "In progress");
+    assert.equal(elements.linkDev.classList.contains("selected"), false);
+    assert.equal(elements.linkStock.classList.contains("selected"), true);
+    assert.equal(elements.linkDsa.classList.contains("selected"), false);
+
+    state.selectedProjectId = "dsa-tracker";
+    renderProjectHeader();
+
+    assert.equal(elements.projectTitleHeading.textContent, "DSA Tracker");
+    assert.equal(elements.projectStatusPill.textContent, "Planning");
+    assert.equal(elements.linkDev.classList.contains("selected"), false);
+    assert.equal(elements.linkStock.classList.contains("selected"), false);
+    assert.equal(elements.linkDsa.classList.contains("selected"), true);
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 3: renderKanban supports priority sorting and toggles sort button", () => {
+  const { document: mockDoc, elements } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    state.tasks = [
+      { id: "T-1", title: "Low priority task", status: "todo", priority: "low", labels: [], dueDate: "Today", assignee: "AD", completed: false },
+      { id: "T-2", title: "High priority task", status: "todo", priority: "high", labels: [], dueDate: "Today", assignee: "AD", completed: false },
+      { id: "T-3", title: "Medium priority task", status: "todo", priority: "medium", labels: [], dueDate: "Today", assignee: "AD", completed: false }
+    ];
+
+    state.taskSort = "default";
+    renderKanban();
+
+    assert.equal(elements.kanbanSortButton.textContent, "Sort");
+    assert.equal(elements.kanbanSortButton.getAttribute("aria-pressed"), "false");
+    assert.equal(elements.cardsTodo.children[0].dataset.taskId, "T-1");
+    assert.equal(elements.cardsTodo.children[1].dataset.taskId, "T-2");
+    assert.equal(elements.cardsTodo.children[2].dataset.taskId, "T-3");
+
+    state.taskSort = "priority";
+    renderKanban();
+
+    assert.equal(elements.kanbanSortButton.textContent, "Sort: Priority");
+    assert.equal(elements.kanbanSortButton.getAttribute("aria-pressed"), "true");
+    assert.equal(elements.cardsTodo.children[0].dataset.taskId, "T-2"); // high
+    assert.equal(elements.cardsTodo.children[1].dataset.taskId, "T-3"); // medium
+    assert.equal(elements.cardsTodo.children[2].dataset.taskId, "T-1"); // low
+  } finally {
+    globalThis.document = prevDoc;
+    state.taskSort = "default";
+  }
+});
+
+test("Phase 3: openCreateTaskModal and closeTaskModal manage focus, body scroll lock, and form state", () => {
+  const { document: mockDoc, elements, body } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    const triggerBtn = mockDoc.createElement("button");
+    triggerBtn.focus();
+    assert.equal(mockDoc.activeElement, triggerBtn);
+
+    openCreateTaskModal("todo");
+
+    assert.equal(elements.taskModal.classList.contains("hidden"), false);
+    assert.equal(body.classList.contains("modal-open"), true);
+    assert.equal(getLastFocusedElement(), triggerBtn);
+    assert.equal(mockDoc.activeElement, elements.taskTitleInput);
+
+    closeTaskModal();
+
+    assert.equal(elements.taskModal.classList.contains("hidden"), true);
+    assert.equal(body.classList.contains("modal-open"), false);
+    assert.equal(mockDoc.activeElement, triggerBtn);
+    assert.equal(getLastFocusedElement(), null);
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 3: handleKeydown traps focus inside task modal on Tab and Shift+Tab", () => {
+  const { document: mockDoc, elements } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    openCreateTaskModal("todo");
+
+    // Modal focusable elements: taskTitleInput, taskPrioritySelect, taskStatusSelect, taskLabelsInput, taskModalSubmit, modalCloseBtn
+    // (deleteTaskButton is hidden)
+    elements.modalCloseBtn.focus();
+    assert.equal(mockDoc.activeElement, elements.modalCloseBtn);
+
+    let defaultPrevented = false;
+    handleKeydown({
+      key: "Tab",
+      shiftKey: false,
+      preventDefault: () => { defaultPrevented = true; }
+    });
+
+    assert.equal(defaultPrevented, true);
+    assert.equal(mockDoc.activeElement, elements.taskTitleInput);
+
+    defaultPrevented = false;
+    handleKeydown({
+      key: "Tab",
+      shiftKey: true,
+      preventDefault: () => { defaultPrevented = true; }
+    });
+
+    assert.equal(defaultPrevented, true);
+    assert.equal(mockDoc.activeElement, elements.modalCloseBtn);
+  } finally {
+    closeTaskModal();
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 3: renderView renders auxiliary placeholders for settings and new-project", () => {
+  const { document: mockDoc, elements } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    state.activeView = "settings";
+    renderView();
+
+    assert.equal(elements.placeholderTitle.textContent, "Settings");
+    assert.match(elements.placeholderDescription.textContent, /preferences/i);
+
+    state.activeView = "new-project";
+    renderView();
+
+    assert.equal(elements.placeholderTitle.textContent, "Create Project");
+    assert.match(elements.placeholderDescription.textContent, /workspace creation/i);
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 3: handleNavigationClick handles project links, sidebar add, and sort toggle", () => {
+  const { document: mockDoc, elements } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // 1. Click project link
+    let defaultPrevented = false;
+    handleNavigationClick({
+      target: elements.linkStock,
+      preventDefault: () => { defaultPrevented = true; }
+    });
+
+    assert.equal(defaultPrevented, true);
+    assert.equal(state.selectedProjectId, "stock-engine");
+    assert.equal(state.activeView, "projects");
+
+    // 2. Click sort button
+    assert.equal(state.taskSort, "default");
+    handleNavigationClick({
+      target: elements.kanbanSortButton,
+      preventDefault: () => {}
+    });
+    assert.equal(state.taskSort, "priority");
+
+    handleNavigationClick({
+      target: elements.kanbanSortButton,
+      preventDefault: () => {}
+    });
+    assert.equal(state.taskSort, "default");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 3: handleKeydown handles Escape and Cmd/Ctrl shortcuts", () => {
+  const { document: mockDoc, elements } = createPhase3DomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // 1. Escape closes open modal
+    openCreateTaskModal("todo");
+    assert.equal(elements.taskModal.classList.contains("hidden"), false);
+
+    handleKeydown({
+      key: "Escape",
+      preventDefault: () => {}
+    });
+    assert.equal(elements.taskModal.classList.contains("hidden"), true);
+
+    // 2. Escape from auxiliary view returns to overview
+    state.activeView = "settings";
+    handleKeydown({
+      key: "Escape",
+      preventDefault: () => {}
+    });
+    assert.equal(state.activeView, "overview");
+
+    // 3. Ctrl+2 switches to projects
+    handleKeydown({
+      key: "2",
+      ctrlKey: true,
+      preventDefault: () => {}
+    });
+    assert.equal(state.activeView, "projects");
+
+    // 4. Ctrl+1 switches to overview
+    handleKeydown({
+      key: "1",
+      ctrlKey: true,
+      preventDefault: () => {}
+    });
+    assert.equal(state.activeView, "overview");
+
+    // 5. Ctrl+Enter starts focus mode
+    handleKeydown({
+      key: "Enter",
+      ctrlKey: true,
+      preventDefault: () => {}
+    });
+    assert.equal(state.activeView, "focus");
+  } finally {
+    globalThis.document = prevDoc;
+    state.activeView = "overview";
   }
 });

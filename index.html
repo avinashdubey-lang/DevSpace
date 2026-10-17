@@ -36,7 +36,7 @@
           </svg>
         </button>
 
-        <a href="#" class="brand" aria-label="DevSpace home">
+        <a href="#overview" class="brand" aria-label="DevSpace home" data-view="overview">
           <span class="brand-mark" aria-hidden="true">&gt;_</span>
           <span>devspace</span>
         </a>
@@ -184,22 +184,23 @@
                 class="sidebar-add-button"
                 type="button"
                 aria-label="Create project"
+                id="sidebar-add-project"
               >
                 +
               </button>
             </div>
 
-            <a href="#developer-platform" class="project-link selected">
+            <a href="#developer-platform" class="project-link selected" data-project-id="developer-platform">
               <span class="project-icon project-icon-blue"></span>
               <span>Developer Platform</span>
             </a>
 
-            <a href="#stock-engine" class="project-link">
+            <a href="#stock-engine" class="project-link" data-project-id="stock-engine">
               <span class="project-icon project-icon-green"></span>
               <span>Stock Engine</span>
             </a>
 
-            <a href="#dsa-tracker" class="project-link">
+            <a href="#dsa-tracker" class="project-link" data-project-id="dsa-tracker">
               <span class="project-icon project-icon-purple"></span>
               <span>DSA Tracker</span>
             </a>
@@ -211,7 +212,7 @@
 
         <div class="sidebar-bottom">
 
-          <a href="#settings" class="sidebar-link">
+          <a href="#settings" class="sidebar-link" data-view="settings">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
               <path d="m19.4 15 .1.1a2 2 0 0 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.2a2 2 0 0 1-4 0v-.2a2 2 0 0 0-3.4-1.4l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1A2 2 0 0 0 1.6 11H1.4a2 2 0 0 1 0-4h.2A2 2 0 0 0 3 3.6l-.1-.1A2 2 0 0 1 5.7.7l.1.1A2 2 0 0 0 9.2 1V.8a2 2 0 0 1 4 0V1a2 2 0 0 0 3.4-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1A2 2 0 0 0 20.8 7h.2a2 2 0 0 1 0 4h-.2a2 2 0 0 0-1.4 4Z"></path>
@@ -383,7 +384,7 @@
                 <h2>Active Projects</h2>
               </div>
 
-              <button class="text-button" type="button">
+              <button class="text-button" type="button" id="overview-all-projects">
                 All projects
               </button>
 
@@ -392,7 +393,7 @@
 
             <div class="project-progress-list">
 
-              <article class="project-progress">
+              <article class="project-progress" data-project-id="developer-platform">
 
                 <div class="project-progress-heading">
 
@@ -417,7 +418,7 @@
               </article>
 
 
-              <article class="project-progress">
+              <article class="project-progress" data-project-id="stock-engine">
 
                 <div class="project-progress-heading">
 
@@ -442,7 +443,7 @@
               </article>
 
 
-              <article class="project-progress">
+              <article class="project-progress" data-project-id="dsa-tracker">
 
                 <div class="project-progress-heading">
 
@@ -671,12 +672,12 @@
             <div class="project-view-title">
 
               <div class="project-title-row">
-                <span class="project-icon project-icon-blue"></span>
-                <h2>Developer Productivity Platform</h2>
-                <span class="status-pill status-progress">In progress</span>
+                <span class="project-icon project-icon-blue" id="project-title-icon"></span>
+                <h2 id="project-title-heading">Developer Productivity Platform</h2>
+                <span class="status-pill status-progress" id="project-status-pill">In progress</span>
               </div>
 
-              <p>
+              <p id="project-title-description">
                 Build the developer workspace for planning, focus, and execution.
               </p>
 
@@ -685,11 +686,11 @@
 
             <div class="project-view-actions">
 
-              <button class="button button-secondary" type="button">
+              <button class="button button-secondary" type="button" id="kanban-filter-button">
                 Filter
               </button>
 
-              <button class="button button-secondary" type="button">
+              <button class="button button-secondary" type="button" id="kanban-sort-button">
                 Sort
               </button>
 

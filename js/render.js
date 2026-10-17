@@ -1,4 +1,4 @@
-import { state } from "./state.js";
+import { state, projects } from "./state.js";
 import { getTasksByStatus, isIncompleteTask } from "./tasks.js";
 import {
   cleanupFocusTimer,
@@ -107,6 +107,40 @@ function createTaskCard(task) {
   return card;
 }
 
+export function renderProjectHeader() {
+  const project = projects[state.selectedProjectId] || projects["developer-platform"];
+  if (!project) return;
+
+  const iconEl = getEl(null, "#project-title-icon");
+  const headingEl = getEl(null, "#project-title-heading");
+  const statusEl = getEl(null, "#project-status-pill");
+  const descEl = getEl(null, "#project-title-description");
+
+  if (iconEl) {
+    iconEl.className = `project-icon ${project.iconClass}`;
+  }
+  if (headingEl) {
+    headingEl.textContent = project.title;
+  }
+  if (statusEl) {
+    statusEl.textContent = project.statusText;
+  }
+  if (descEl) {
+    descEl.textContent = project.description;
+  }
+
+  if (typeof document !== "undefined" && typeof document.querySelectorAll === "function") {
+    const projectLinks = document.querySelectorAll(".project-link[data-project-id]");
+    if (projectLinks) {
+      projectLinks.forEach(link => {
+        if (link && link.classList) {
+          link.classList.toggle("selected", link.dataset?.projectId === state.selectedProjectId);
+        }
+      });
+    }
+  }
+}
+
 export function renderKanban() {
   const board = getEl(kanbanBoard, "#kanban-board");
   if (!board) return;
@@ -120,7 +154,14 @@ export function renderKanban() {
 
     if (!cardsContainer) return;
 
-    const tasks = getTasksByStatus(status);
+    let tasks = getTasksByStatus(status);
+
+    if (state.taskSort === "priority") {
+      const priorityOrder = { high: 1, medium: 2, low: 3 };
+      tasks = [...tasks].sort(
+        (a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4)
+      );
+    }
 
     cardsContainer.innerHTML = "";
 
@@ -132,6 +173,14 @@ export function renderKanban() {
       countElement.textContent = tasks.length;
     }
   });
+
+  const sortButton = getEl(null, "#kanban-sort-button");
+  if (sortButton) {
+    sortButton.textContent = state.taskSort === "priority" ? "Sort: Priority" : "Sort";
+    if (typeof sortButton.setAttribute === "function") {
+      sortButton.setAttribute("aria-pressed", String(state.taskSort === "priority"));
+    }
+  }
 }
 
 function getEl(cached, selector) {
@@ -474,6 +523,8 @@ export function renderView() {
     renderOverview();
   } else if (view === "projects" || view === "tasks" || view === "issues") {
     projView?.classList.remove("hidden");
+    renderProjectHeader();
+    renderKanban();
   } else if (view === "focus") {
     focMode?.classList.remove("hidden");
     renderFocusSession();
@@ -490,6 +541,14 @@ export function renderView() {
       analytics: {
         title: "Analytics",
         description: "Productivity metrics, velocity charts, and focus logs are under active development."
+      },
+      settings: {
+        title: "Settings",
+        description: "Workspace preferences, profile settings, and integrations are under active development."
+      },
+      "new-project": {
+        title: "Create Project",
+        description: "Multi-project workspace creation and repository syncing are under active development."
       }
     };
 

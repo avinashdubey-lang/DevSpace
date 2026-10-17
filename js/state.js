@@ -58,7 +58,33 @@ export const state = {
 
   selectedTaskId: null,
   focusTaskId: null,
+  selectedProjectId: "developer-platform",
+  taskSort: "default",
   loading: false,
   error: null,
   activeView: "overview"
+};
+
+export const projects = {
+  "developer-platform": {
+    id: "developer-platform",
+    title: "Developer Productivity Platform",
+    description: "Build the developer workspace for planning, focus, and execution.",
+    iconClass: "project-icon-blue",
+    statusText: "In progress"
+  },
+  "stock-engine": {
+    id: "stock-engine",
+    title: "Stock Trading Engine",
+    description: "Algorithmic execution, risk analytics, and real-time market data.",
+    iconClass: "project-icon-green",
+    statusText: "In progress"
+  },
+  "dsa-tracker": {
+    id: "dsa-tracker",
+    title: "DSA Tracker",
+    description: "Data structures, algorithm challenges, and technical interview prep.",
+    iconClass: "project-icon-purple",
+    statusText: "Planning"
+  }
 };

@@ -2177,6 +2177,16 @@ kbd {
 }
 
 
+body.modal-open {
+  overflow: hidden;
+}
+
+.sidebar-add-button,
+.project-progress,
+.column-menu {
+  cursor: pointer;
+}
+
 /* Task creation modal */
 
 .task-modal.hidden {
