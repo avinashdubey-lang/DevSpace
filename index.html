@@ -244,7 +244,7 @@
 
             <h1>Good evening, Avinash</h1>
 
-            <p class="page-subtitle">
+            <p class="page-subtitle" id="overview-page-subtitle">
               3 tasks need your attention.
             </p>
           </div>
@@ -310,10 +310,10 @@
               </svg>
             </div>
 
-            <strong class="metric-value">12</strong>
+            <strong class="metric-value" id="overview-tasks-completed-metric">0</strong>
 
-            <span class="metric-detail">
-              3 remaining today
+            <span class="metric-detail" id="overview-tasks-remaining-detail">
+              0 remaining today
             </span>
 
           </article>
@@ -358,110 +358,14 @@
                 <h2>Today's Focus</h2>
               </div>
 
-              <button class="text-button" type="button">
+              <button class="text-button" type="button" id="overview-view-all">
                 View all
               </button>
 
             </header>
 
 
-            <div class="task-list">
-
-              <article class="task-row priority-high">
-
-                <button
-                  class="task-checkbox"
-                  type="button"
-                  aria-label="Mark Implement JWT refresh flow complete"
-                ></button>
-
-                <div class="task-main">
-
-                  <div class="task-title-row">
-                    <h3>Implement JWT refresh flow</h3>
-                    <span class="priority-badge priority-critical">High</span>
-                  </div>
-
-                  <div class="task-meta">
-                    <span class="mono">DEV-142</span>
-                    <span class="task-dot">•</span>
-                    <span>backend</span>
-                    <span class="task-dot">•</span>
-                    <span>Due today</span>
-                  </div>
-
-                </div>
-
-                <div class="task-assignee avatar avatar-small">
-                  AD
-                </div>
-
-              </article>
-
-
-              <article class="task-row priority-medium">
-
-                <button
-                  class="task-checkbox"
-                  type="button"
-                  aria-label="Mark Fix PostgreSQL connection pooling complete"
-                ></button>
-
-                <div class="task-main">
-
-                  <div class="task-title-row">
-                    <h3>Fix PostgreSQL connection pooling</h3>
-                    <span class="priority-badge priority-medium">Medium</span>
-                  </div>
-
-                  <div class="task-meta">
-                    <span class="mono">DEV-138</span>
-                    <span class="task-dot">•</span>
-                    <span>database</span>
-                    <span class="task-dot">•</span>
-                    <span>Due today</span>
-                  </div>
-
-                </div>
-
-                <div class="task-assignee avatar avatar-small">
-                  AD
-                </div>
-
-              </article>
-
-
-              <article class="task-row priority-medium">
-
-                <button
-                  class="task-checkbox"
-                  type="button"
-                  aria-label="Mark Review API error handling complete"
-                ></button>
-
-                <div class="task-main">
-
-                  <div class="task-title-row">
-                    <h3>Review API error handling</h3>
-                    <span class="priority-badge priority-medium">Medium</span>
-                  </div>
-
-                  <div class="task-meta">
-                    <span class="mono">API-028</span>
-                    <span class="task-dot">•</span>
-                    <span>api</span>
-                    <span class="task-dot">•</span>
-                    <span>Tomorrow</span>
-                  </div>
-
-                </div>
-
-                <div class="task-assignee avatar avatar-small">
-                  AD
-                </div>
-
-              </article>
-
+            <div class="task-list" id="overview-today-focus-list">
             </div>
 
           </section>

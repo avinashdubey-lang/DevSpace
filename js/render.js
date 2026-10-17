@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { getTasksByStatus } from "./tasks.js";
+import { getTasksByStatus, isIncompleteTask } from "./tasks.js";
 import {
   cleanupFocusTimer,
   formatFocusDuration,
@@ -8,19 +8,19 @@ import {
   syncFocusTask
 } from "./focus.js";
 
-const kanbanBoard = document.querySelector("#kanban-board");
+const kanbanBoard = typeof document !== "undefined" ? document.querySelector("#kanban-board") : null;
 
 const dashboardElements = {
-  pageHeader: document.querySelector(".page-header"),
-  metrics: document.querySelector(".metric-grid"),
-  dashboardLayout: document.querySelector(".dashboard-layout")
+  pageHeader: typeof document !== "undefined" ? document.querySelector(".page-header") : null,
+  metrics: typeof document !== "undefined" ? document.querySelector(".metric-grid") : null,
+  dashboardLayout: typeof document !== "undefined" ? document.querySelector(".dashboard-layout") : null
 };
 
-const projectView = document.querySelector("#project-view");
-const focusMode = document.querySelector("#focus-mode");
-const placeholderView = document.querySelector("#placeholder-view");
-const placeholderTitle = document.querySelector("#placeholder-title");
-const placeholderDescription = document.querySelector("#placeholder-description");
+const projectView = typeof document !== "undefined" ? document.querySelector("#project-view") : null;
+const focusMode = typeof document !== "undefined" ? document.querySelector("#focus-mode") : null;
+const placeholderView = typeof document !== "undefined" ? document.querySelector("#placeholder-view") : null;
+const placeholderTitle = typeof document !== "undefined" ? document.querySelector("#placeholder-title") : null;
+const placeholderDescription = typeof document !== "undefined" ? document.querySelector("#placeholder-description") : null;
 
 function createTaskCard(task) {
   const card = document.createElement("article");
@@ -108,9 +108,10 @@ function createTaskCard(task) {
 }
 
 export function renderKanban() {
-  if (!kanbanBoard) return;
+  const board = getEl(kanbanBoard, "#kanban-board");
+  if (!board) return;
 
-  const columns = kanbanBoard.querySelectorAll(".kanban-column");
+  const columns = board.querySelectorAll(".kanban-column");
 
   columns.forEach(column => {
     const status = column.dataset.status;
@@ -284,6 +285,162 @@ export function renderFocusSession() {
   }
 }
 
+export function renderOverviewMetrics() {
+  const completedMetric = getEl(null, "#overview-tasks-completed-metric") ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".metric-grid .metric-card:nth-child(2) .metric-value")
+      : null);
+
+  const remainingDetail = getEl(null, "#overview-tasks-remaining-detail") ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".metric-grid .metric-card:nth-child(2) .metric-detail")
+      : null);
+
+  const subtitle = getEl(null, "#overview-page-subtitle") ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".page-header .page-subtitle")
+      : null);
+
+  const completedCount = getTasksByStatus("done").length;
+  const remainingCount = state.tasks.filter(isIncompleteTask).length;
+
+  if (completedMetric) {
+    completedMetric.textContent = String(completedCount);
+  }
+
+  if (remainingDetail) {
+    remainingDetail.textContent = `${remainingCount} remaining today`;
+  }
+
+  if (subtitle) {
+    if (state.tasks.length === 0) {
+      subtitle.textContent = "No tasks on your board.";
+    } else if (remainingCount === 0) {
+      subtitle.textContent = "All tasks completed.";
+    } else if (remainingCount === 1) {
+      subtitle.textContent = "1 task needs your attention.";
+    } else {
+      subtitle.textContent = `${remainingCount} tasks need your attention.`;
+    }
+  }
+}
+
+export function createTodayFocusRow(task) {
+  const row = document.createElement("article");
+  row.classList.add("task-row", `priority-${task.priority}`);
+  row.dataset.taskId = task.id;
+
+  const checkbox = document.createElement("button");
+  checkbox.type = "button";
+  checkbox.classList.add("task-checkbox");
+  checkbox.setAttribute("aria-label", `Mark ${task.title} complete`);
+  checkbox.dataset.taskId = task.id;
+
+  const main = document.createElement("div");
+  main.classList.add("task-main");
+
+  const titleRow = document.createElement("div");
+  titleRow.classList.add("task-title-row");
+
+  const title = document.createElement("h3");
+  title.textContent = task.title;
+
+  const priorityBadge = document.createElement("span");
+  priorityBadge.classList.add("priority-badge");
+  if (task.priority === "high") {
+    priorityBadge.classList.add("priority-critical");
+  } else if (task.priority === "medium") {
+    priorityBadge.classList.add("priority-medium");
+  } else {
+    priorityBadge.classList.add("priority-low");
+  }
+  priorityBadge.textContent =
+    task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+
+  titleRow.appendChild(title);
+  titleRow.appendChild(priorityBadge);
+
+  const meta = document.createElement("div");
+  meta.classList.add("task-meta");
+
+  const issueId = document.createElement("span");
+  issueId.classList.add("mono");
+  issueId.textContent = task.id;
+  meta.appendChild(issueId);
+
+  if (Array.isArray(task.labels) && task.labels.length > 0) {
+    const dot = document.createElement("span");
+    dot.classList.add("task-dot");
+    dot.textContent = "•";
+    meta.appendChild(dot);
+
+    const labelSpan = document.createElement("span");
+    labelSpan.textContent = task.labels.join(", ");
+    meta.appendChild(labelSpan);
+  }
+
+  if (task.dueDate) {
+    const dot = document.createElement("span");
+    dot.classList.add("task-dot");
+    dot.textContent = "•";
+    meta.appendChild(dot);
+
+    const dueSpan = document.createElement("span");
+    dueSpan.textContent = task.dueDate;
+    meta.appendChild(dueSpan);
+  }
+
+  main.appendChild(titleRow);
+  main.appendChild(meta);
+
+  const assignee = document.createElement("div");
+  assignee.classList.add("task-assignee", "avatar", "avatar-small");
+  assignee.textContent = task.assignee || "AD";
+
+  row.appendChild(checkbox);
+  row.appendChild(main);
+  row.appendChild(assignee);
+
+  return row;
+}
+
+export function renderTodayFocus() {
+  const container = getEl(null, "#overview-today-focus-list") ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".focus-panel .task-list")
+      : null);
+
+  if (!container) return;
+
+  const incompleteTasks = state.tasks.filter(isIncompleteTask);
+
+  container.innerHTML = "";
+
+  if (incompleteTasks.length === 0) {
+    const emptyContainer = document.createElement("div");
+    emptyContainer.classList.add("task-empty-state");
+    emptyContainer.id = "overview-focus-empty";
+
+    const emptyText = document.createElement("p");
+    emptyText.textContent = state.tasks.length === 0
+      ? "No tasks yet. Create a task to get started."
+      : "All caught up! No incomplete tasks.";
+
+    emptyContainer.appendChild(emptyText);
+    container.appendChild(emptyContainer);
+    return;
+  }
+
+  incompleteTasks.forEach(task => {
+    container.appendChild(createTodayFocusRow(task));
+  });
+}
+
+export function renderOverview() {
+  renderOverviewMetrics();
+  renderTodayFocus();
+}
+
 export function renderView() {
   const view = state.activeView;
 
@@ -314,6 +471,7 @@ export function renderView() {
     pageHeader?.classList.remove("hidden");
     metrics?.classList.remove("hidden");
     dashboardLayout?.classList.remove("hidden");
+    renderOverview();
   } else if (view === "projects" || view === "tasks" || view === "issues") {
     projView?.classList.remove("hidden");
   } else if (view === "focus") {

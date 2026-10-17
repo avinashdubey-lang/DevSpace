@@ -6,9 +6,18 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  getTasksByStatus,
+  isIncompleteTask,
   validPriorities,
   validStatuses
 } from "./js/tasks.js";
+import {
+  createTodayFocusRow,
+  renderOverview,
+  renderOverviewMetrics,
+  renderTodayFocus
+} from "./js/render.js";
+import { completeTaskById } from "./js/events.js";
 import {
   saveTasks,
   loadTasks,
@@ -942,4 +951,488 @@ test("resolveFocusTask prefers the selected incomplete task, then in-progress", 
   state.focusTaskId = null;
   assert.equal(resolveFocusTask(), null);
   assert.equal(state.focusTaskId, null);
+});
+
+// ============================================================================
+// PHASE 2 TESTS: OVERVIEW DASHBOARD LIVE BINDING
+// ============================================================================
+
+function createMockDomEnvironment() {
+  const elements = new Map();
+
+  function makeElement(tag, id = null, classes = []) {
+    const classSet = new Set(classes);
+    const attrs = new Map();
+    const children = [];
+
+    const el = {
+      tagName: tag.toUpperCase(),
+      id,
+      dataset: {},
+      children,
+      get childNodes() {
+        return children;
+      },
+      get classList() {
+        return {
+          add(...cls) { cls.forEach(c => classSet.add(c)); },
+          remove(...cls) { cls.forEach(c => classSet.delete(c)); },
+          contains(c) { return classSet.has(c); },
+          toggle(c, force) {
+            const has = force !== undefined ? force : !classSet.has(c);
+            if (has) classSet.add(c);
+            else classSet.delete(c);
+            return has;
+          }
+        };
+      },
+      textContent: "",
+      get innerHTML() {
+        return children.map(c => c.textContent).join("");
+      },
+      set innerHTML(val) {
+        if (val === "") {
+          children.length = 0;
+        }
+      },
+      appendChild(child) {
+        children.push(child);
+        return child;
+      },
+      setAttribute(name, val) {
+        attrs.set(name, String(val));
+      },
+      getAttribute(name) {
+        return attrs.has(name) ? attrs.get(name) : null;
+      },
+      closest(sel) {
+        if (sel === ".task-row" && classSet.has("task-row")) return el;
+        if (sel === ".task-checkbox" && classSet.has("task-checkbox")) return el;
+        return null;
+      },
+      querySelector(sel) {
+        return findInTree(this, sel);
+      },
+      querySelectorAll(sel) {
+        const results = [];
+        collectInTree(this, sel, results);
+        return results;
+      }
+    };
+
+    if (id) {
+      elements.set(`#${id}`, el);
+    }
+
+    return el;
+  }
+
+  function matches(node, selector) {
+    if (selector.startsWith("#") && node.id === selector.slice(1)) return true;
+    if (selector.startsWith(".") && node.classList.contains(selector.slice(1))) return true;
+    if (selector.toLowerCase() === node.tagName.toLowerCase()) return true;
+    return false;
+  }
+
+  function findInTree(root, selector) {
+    for (const child of root.children) {
+      if (matches(child, selector)) return child;
+      const found = findInTree(child, selector);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function collectInTree(root, selector, acc) {
+    for (const child of root.children) {
+      if (matches(child, selector)) acc.push(child);
+      collectInTree(child, selector, acc);
+    }
+  }
+
+  const completedMetric = makeElement("strong", "overview-tasks-completed-metric");
+  const remainingDetail = makeElement("span", "overview-tasks-remaining-detail");
+  const subtitle = makeElement("p", "overview-page-subtitle");
+  const todayFocusList = makeElement("div", "overview-today-focus-list", ["task-list"]);
+
+  const doc = {
+    createElement(tag) {
+      return makeElement(tag);
+    },
+    querySelector(selector) {
+      if (elements.has(selector)) return elements.get(selector);
+      return null;
+    },
+    querySelectorAll(selector) {
+      const results = [];
+      for (const el of elements.values()) {
+        if (matches(el, selector)) results.push(el);
+      }
+      return results;
+    },
+    addEventListener: () => {}
+  };
+
+  return {
+    document: doc,
+    elements: {
+      completedMetric,
+      remainingDetail,
+      subtitle,
+      todayFocusList
+    }
+  };
+}
+
+test("isIncompleteTask identifies incomplete tasks and excludes done tasks", () => {
+  assert.equal(isIncompleteTask({ id: "1", status: "todo", completed: false }), true);
+  assert.equal(isIncompleteTask({ id: "2", status: "in-progress", completed: false }), true);
+  assert.equal(isIncompleteTask({ id: "3", status: "backlog", completed: false }), true);
+  assert.equal(isIncompleteTask({ id: "4", status: "review", completed: false }), true);
+  assert.equal(isIncompleteTask({ id: "5", status: "done", completed: true }), false);
+  assert.equal(isIncompleteTask({ id: "6", status: "done", completed: false }), false);
+  assert.equal(isIncompleteTask({ id: "7", status: "todo", completed: true }), false);
+  assert.equal(isIncompleteTask(null), false);
+  assert.equal(isIncompleteTask(undefined), false);
+});
+
+test("Phase 2: renderOverviewMetrics reflects completed and remaining task counts accurately", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // Initial sample tasks: 1 done (DEV-129), 4 incomplete
+    renderOverviewMetrics();
+
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.remainingDetail.textContent, "4 remaining today");
+    assert.equal(elements.subtitle.textContent, "4 tasks need your attention.");
+
+    // Complete another task
+    updateTask("DEV-142", { status: "done" });
+    renderOverviewMetrics();
+
+    assert.equal(elements.completedMetric.textContent, "2");
+    assert.equal(elements.remainingDetail.textContent, "3 remaining today");
+    assert.equal(elements.subtitle.textContent, "3 tasks need your attention.");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: renderOverviewMetrics handles empty board and all-completed tasks", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // Empty task list
+    state.tasks = [];
+    renderOverviewMetrics();
+
+    assert.equal(elements.completedMetric.textContent, "0");
+    assert.equal(elements.remainingDetail.textContent, "0 remaining today");
+    assert.equal(elements.subtitle.textContent, "No tasks on your board.");
+
+    // All tasks completed
+    state.tasks = [
+      {
+        id: "T-1",
+        title: "Finished task",
+        status: "done",
+        priority: "medium",
+        labels: [],
+        dueDate: "Today",
+        assignee: "AD",
+        completed: true
+      }
+    ];
+    renderOverviewMetrics();
+
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.remainingDetail.textContent, "0 remaining today");
+    assert.equal(elements.subtitle.textContent, "All tasks completed.");
+
+    // Exactly 1 incomplete task
+    state.tasks.push({
+      id: "T-2",
+      title: "One left",
+      status: "todo",
+      priority: "high",
+      labels: [],
+      dueDate: "Tomorrow",
+      assignee: "AD",
+      completed: false
+    });
+    renderOverviewMetrics();
+
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.remainingDetail.textContent, "1 remaining today");
+    assert.equal(elements.subtitle.textContent, "1 task needs your attention.");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: createTodayFocusRow generates expected DOM elements, attributes, and priority badges", () => {
+  const { document: mockDoc } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    const task = {
+      id: "DEV-999",
+      title: "Write documentation",
+      priority: "high",
+      status: "todo",
+      labels: ["docs", "api"],
+      dueDate: "Today",
+      assignee: "AD",
+      completed: false
+    };
+
+    const row = createTodayFocusRow(task);
+
+    assert.equal(row.classList.contains("task-row"), true);
+    assert.equal(row.classList.contains("priority-high"), true);
+    assert.equal(row.dataset.taskId, "DEV-999");
+
+    const checkbox = row.querySelector(".task-checkbox");
+    assert.ok(checkbox, "Checkbox element must be present");
+    assert.equal(checkbox.dataset.taskId, "DEV-999");
+    assert.equal(checkbox.getAttribute("aria-label"), "Mark Write documentation complete");
+
+    const title = row.querySelector("h3");
+    assert.equal(title.textContent, "Write documentation");
+
+    const badge = row.querySelector(".priority-badge");
+    assert.ok(badge);
+    assert.equal(badge.classList.contains("priority-critical"), true);
+    assert.equal(badge.textContent, "High");
+
+    // Medium priority badge
+    const mediumRow = createTodayFocusRow({ ...task, priority: "medium" });
+    const medBadge = mediumRow.querySelector(".priority-badge");
+    assert.equal(medBadge.classList.contains("priority-medium"), true);
+    assert.equal(medBadge.textContent, "Medium");
+
+    // Low priority badge
+    const lowRow = createTodayFocusRow({ ...task, priority: "low" });
+    const lowBadge = lowRow.querySelector(".priority-badge");
+    assert.equal(lowBadge.classList.contains("priority-low"), true);
+    assert.equal(lowBadge.textContent, "Low");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: renderTodayFocus renders eligible incomplete tasks and updates when state changes", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // Initial sample tasks: 4 incomplete (DEV-142, DEV-138, API-028, DEV-151), 1 done (DEV-129)
+    renderTodayFocus();
+
+    assert.equal(elements.todayFocusList.children.length, 4);
+    const renderedIds = elements.todayFocusList.children.map(row => row.dataset.taskId);
+    assert.deepEqual(renderedIds, ["DEV-142", "DEV-138", "API-028", "DEV-151"]);
+    assert.equal(renderedIds.includes("DEV-129"), false, "Done task DEV-129 must not be in Today's Focus");
+
+    // Mark DEV-142 done and re-render
+    updateTask("DEV-142", { status: "done" });
+    renderTodayFocus();
+
+    assert.equal(elements.todayFocusList.children.length, 3);
+    const afterIds = elements.todayFocusList.children.map(row => row.dataset.taskId);
+    assert.deepEqual(afterIds, ["DEV-138", "API-028", "DEV-151"]);
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: renderTodayFocus renders styled empty state when all tasks are complete or board is empty", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // When all tasks are done
+    state.tasks = state.tasks.map(t => ({ ...t, status: "done", completed: true }));
+    renderTodayFocus();
+
+    assert.equal(elements.todayFocusList.children.length, 1);
+    const emptyEl = elements.todayFocusList.children[0];
+    assert.equal(emptyEl.classList.contains("task-empty-state"), true);
+    assert.equal(emptyEl.id, "overview-focus-empty");
+    assert.equal(emptyEl.querySelector("p").textContent, "All caught up! No incomplete tasks.");
+
+    // When board has zero tasks
+    state.tasks = [];
+    renderTodayFocus();
+
+    assert.equal(elements.todayFocusList.children.length, 1);
+    const zeroEl = elements.todayFocusList.children[0];
+    assert.equal(zeroEl.classList.contains("task-empty-state"), true);
+    assert.equal(zeroEl.querySelector("p").textContent, "No tasks yet. Create a task to get started.");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: completeTaskById marks task done, completed true, and persists to localStorage", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    // Initial state
+    renderOverview();
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.todayFocusList.children.length, 4);
+
+    // Complete DEV-138 via completeTaskById
+    const result = completeTaskById("DEV-138");
+
+    assert.equal(result.ok, true);
+    assert.equal(result.saved, true);
+    assert.equal(result.task.status, "done");
+    assert.equal(result.task.completed, true);
+
+    // Verify in-memory state
+    const inMem = state.tasks.find(t => t.id === "DEV-138");
+    assert.equal(inMem.status, "done");
+    assert.equal(inMem.completed, true);
+
+    // Verify localStorage persistence
+    const stored = JSON.parse(mockStorage.getItem(STORAGE_KEY));
+    const saved = stored.find(t => t.id === "DEV-138");
+    assert.equal(saved.status, "done");
+    assert.equal(saved.completed, true);
+
+    // Verify Overview metrics updated immediately
+    assert.equal(elements.completedMetric.textContent, "2");
+    assert.equal(elements.remainingDetail.textContent, "3 remaining today");
+
+    // Verify Today's Focus list updated immediately (DEV-138 removed)
+    assert.equal(elements.todayFocusList.children.length, 3);
+    const remainingIds = elements.todayFocusList.children.map(row => row.dataset.taskId);
+    assert.equal(remainingIds.includes("DEV-138"), false);
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: completeTaskById clears focusTaskId if completing the active focus task", () => {
+  const { document: mockDoc } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    state.focusTaskId = "API-028";
+    const result = completeTaskById("API-028");
+
+    assert.equal(result.ok, true);
+    assert.equal(state.focusTaskId, null, "focusTaskId must be reset to null");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: completeTaskById safely handles non-existent or invalid task ID", () => {
+  const { document: mockDoc } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    const missing = completeTaskById("NON-EXISTENT");
+    assert.equal(missing.ok, false);
+    assert.equal(missing.reason, "missing");
+    assert.equal(missing.task, null);
+
+    const emptyId = completeTaskById("");
+    assert.equal(emptyId.ok, false);
+    assert.equal(emptyId.reason, "invalid-id");
+
+    const nullId = completeTaskById(null);
+    assert.equal(nullId.ok, false);
+    assert.equal(nullId.reason, "invalid-id");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: completeTaskById handles storage write failure gracefully", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  mockStorage.setItem = () => {
+    throw new Error("Quota exceeded");
+  };
+
+  try {
+    renderOverview();
+    const result = completeTaskById("DEV-138");
+
+    assert.equal(result.ok, true);
+    assert.equal(result.saved, false);
+    assert.equal(result.reason, "save-failed");
+    assert.equal(result.task.status, "done");
+    assert.equal(result.task.completed, true);
+
+    // In-memory changes and DOM are still updated
+    assert.equal(elements.completedMetric.textContent, "2");
+    assert.equal(state.error, "Quota exceeded");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("Phase 2: Task CRUD and drop actions update Overview dashboard synchronously", () => {
+  const { document: mockDoc, elements } = createMockDomEnvironment();
+  const prevDoc = globalThis.document;
+  globalThis.document = mockDoc;
+
+  try {
+    renderOverview();
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.todayFocusList.children.length, 4);
+
+    // 1. Create a new incomplete task
+    const newTask = createTask({
+      title: "New feature",
+      priority: "high",
+      status: "todo",
+      labels: ["frontend"]
+    });
+    saveTasks();
+    renderOverview();
+
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.remainingDetail.textContent, "5 remaining today");
+    assert.equal(elements.todayFocusList.children.length, 5);
+
+    // 2. Delete a task
+    deleteTask(newTask.id);
+    saveTasks();
+    renderOverview();
+
+    assert.equal(elements.completedMetric.textContent, "1");
+    assert.equal(elements.remainingDetail.textContent, "4 remaining today");
+    assert.equal(elements.todayFocusList.children.length, 4);
+
+    // 3. Status change to done
+    updateTask("DEV-142", { status: "done" });
+    saveTasks();
+    renderOverview();
+
+    assert.equal(elements.completedMetric.textContent, "2");
+    assert.equal(elements.remainingDetail.textContent, "3 remaining today");
+    assert.equal(elements.todayFocusList.children.length, 3);
+  } finally {
+    globalThis.document = prevDoc;
+  }
 });

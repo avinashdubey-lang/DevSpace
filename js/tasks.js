@@ -24,6 +24,15 @@ export function getTasksByStatus(status) {
   return state.tasks.filter(task => task.status === status);
 }
 
+export function isIncompleteTask(task) {
+  return Boolean(
+    task &&
+      task.completed !== true &&
+      task.status !== "done"
+  );
+}
+
+
 
 export function createTask({ title, priority, status, labels = [] }) {
   // Validate title

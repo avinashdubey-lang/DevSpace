@@ -1,30 +1,31 @@
 import { state } from "./state.js";
 import { createTask, updateTask, deleteTask } from "./tasks.js";
-import { renderKanban, renderFocusSession, renderView } from "./render.js";
+import { renderKanban, renderFocusSession, renderOverview, renderView } from "./render.js";
 import { saveTasks } from "./api.js";
 import {
   completeFocusTask,
+  pauseFocusTimer,
   resolveFocusTask,
   toggleFocusTimer
 } from "./focus.js";
 
-const kanbanBoard = document.querySelector("#kanban-board");
+const kanbanBoard = typeof document !== "undefined" ? document.querySelector("#kanban-board") : null;
 
-const taskModal = document.querySelector("#task-modal");
-const createTaskForm = document.querySelector("#create-task-form");
-const taskTitleInput = document.querySelector("#task-title");
-const taskStatusSelect = document.querySelector("#task-status");
+const taskModal = typeof document !== "undefined" ? document.querySelector("#task-modal") : null;
+const createTaskForm = typeof document !== "undefined" ? document.querySelector("#create-task-form") : null;
+const taskTitleInput = typeof document !== "undefined" ? document.querySelector("#task-title") : null;
+const taskStatusSelect = typeof document !== "undefined" ? document.querySelector("#task-status") : null;
 let editingTaskId = null;
 
-const taskModalTitle = document.querySelector("#task-modal-title");
+const taskModalTitle = typeof document !== "undefined" ? document.querySelector("#task-modal-title") : null;
 const taskModalSubmit = createTaskForm?.querySelector(
   'button[type="submit"]'
 );
-const taskLabelsInput = document.querySelector("#task-labels");
-const taskPrioritySelect = document.querySelector("#task-priority");
-const deleteTaskButton = document.querySelector("#delete-task-button");
-const mobileMenuButton = document.querySelector("#mobile-menu-button");
-const sidebarBackdrop = document.querySelector("#sidebar-backdrop");
+const taskLabelsInput = typeof document !== "undefined" ? document.querySelector("#task-labels") : null;
+const taskPrioritySelect = typeof document !== "undefined" ? document.querySelector("#task-priority") : null;
+const deleteTaskButton = typeof document !== "undefined" ? document.querySelector("#delete-task-button") : null;
+const mobileMenuButton = typeof document !== "undefined" ? document.querySelector("#mobile-menu-button") : null;
+const sidebarBackdrop = typeof document !== "undefined" ? document.querySelector("#sidebar-backdrop") : null;
 
 function selectTask(taskId) {
   state.selectedTaskId = taskId;
@@ -160,9 +161,70 @@ function handleFocusClick(event) {
 
     if (result.ok) {
       renderKanban();
+      renderOverview();
     }
 
     renderFocusSession();
+  }
+}
+
+export function completeTaskById(taskId) {
+  if (!taskId || typeof taskId !== "string") {
+    return { ok: false, reason: "invalid-id", task: null, saved: false };
+  }
+
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) {
+    return { ok: false, reason: "missing", task: null, saved: false };
+  }
+
+  const updated = updateTask(taskId, { status: "done" });
+  if (!updated) {
+    return { ok: false, reason: "invalid", task: null, saved: false };
+  }
+
+  if (state.focusTaskId === taskId) {
+    pauseFocusTimer();
+    state.focusTaskId = null;
+  }
+
+  const saved = saveTasks();
+
+  renderOverview();
+  renderKanban();
+
+  if (state.activeView === "focus") {
+    renderFocusSession();
+  }
+
+  return {
+    ok: true,
+    reason: saved ? "completed" : "save-failed",
+    task: updated,
+    saved
+  };
+}
+
+function handleTodayFocusClick(event) {
+  const checkbox = event.target.closest(".task-checkbox");
+  if (checkbox) {
+    const taskId =
+      checkbox.dataset.taskId ||
+      checkbox.closest(".task-row")?.dataset.taskId;
+
+    if (taskId) {
+      completeTaskById(taskId);
+    }
+    return;
+  }
+
+  const viewAllBtn = event.target.closest(
+    "#overview-view-all, .focus-panel .text-button"
+  );
+  if (viewAllBtn) {
+    state.activeView = "tasks";
+    renderView();
+    return;
   }
 }
 
@@ -178,6 +240,7 @@ export function initializeEvents() {
   document.addEventListener("click", handleTaskModalClick);
   document.addEventListener("click", handlePlaceholderClick);
   document.addEventListener("click", handleFocusClick);
+  document.addEventListener("click", handleTodayFocusClick);
   mobileMenuButton?.addEventListener("click", toggleMobileSidebar);
   sidebarBackdrop?.addEventListener("click", closeMobileSidebar);
   document.addEventListener("keydown", handleKeydown);
@@ -286,6 +349,7 @@ function handleCreateTaskSubmit(event) {
   deleteTaskButton.hidden = true;
 
   renderKanban();
+  renderOverview();
 }
 
 function handleDeleteTask() {
@@ -320,6 +384,7 @@ function handleDeleteTask() {
   deleteTaskButton.hidden = true;
 
   renderKanban();
+  renderOverview();
 
   if (state.activeView === "focus") {
     renderFocusSession();
@@ -407,6 +472,7 @@ function handleDrop(event) {
 
   saveTasks();
   renderKanban();
+  renderOverview();
 
   if (state.activeView === "focus") {
     renderFocusSession();

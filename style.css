@@ -998,6 +998,7 @@ kbd {
 
   border: 1px solid var(--color-border-strong);
   border-radius: 50%;
+  cursor: pointer;
 }
 
 .task-checkbox:hover {
@@ -1055,6 +1056,32 @@ kbd {
 .priority-medium {
   color: #e3b341;
   background: var(--color-yellow-soft);
+}
+
+.priority-low {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+}
+
+.task-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  gap: var(--space-2);
+}
+
+.task-empty-state p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.task-empty-state span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 
 .task-meta {
