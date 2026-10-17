@@ -1818,6 +1818,34 @@ kbd {
   font-size: 0.625rem;
 }
 
+.focus-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.focus-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4rem) 0;
+  gap: 16px;
+  text-align: center;
+}
+
+.focus-empty.hidden,
+#focus-session.hidden {
+  display: none !important;
+}
+
 
 /* ============================================================
    17. STATUS BAR

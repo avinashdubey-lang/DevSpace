@@ -262,7 +262,11 @@
               New task
             </button>
 
-            <button class="button button-primary" type="button">
+            <button
+              class="button button-primary"
+              type="button"
+              id="overview-start-focus"
+            >
               Start focus
             </button>
 
@@ -1110,82 +1114,113 @@
         <!-- =====================================================
              FOCUS MODE PREVIEW
              ===================================================== -->
-        <section class="focus-mode panel" id="focus-mode">
+        <section class="focus-mode panel hidden" id="focus-mode">
 
           <div class="focus-mode-inner">
 
-            <div class="focus-mode-header">
+            <p class="focus-live" id="focus-live" aria-live="polite"></p>
 
-              <div>
-                <p class="eyebrow">FOCUS MODE</p>
+            <div id="focus-session">
 
-                <h2>Implement authentication middleware</h2>
+              <div class="focus-mode-header">
 
-                <p class="focus-task-meta">
-                  <span class="mono">DEV-142</span>
-                  <span>•</span>
-                  <span>Developer Platform</span>
+                <div>
+                  <p class="eyebrow">FOCUS MODE</p>
+
+                  <h2 id="focus-task-title">Select a task</h2>
+
+                  <p class="focus-task-meta" id="focus-task-meta">
+                    <span class="mono" id="focus-task-id"></span>
+                    <span id="focus-task-meta-separator">•</span>
+                    <span id="focus-task-priority"></span>
+                  </p>
+                </div>
+
+                <button
+                  class="icon-button"
+                  type="button"
+                  id="focus-close-button"
+                  aria-label="Close focus mode"
+                >
+                  ×
+                </button>
+
+              </div>
+
+
+              <div class="focus-timer-area">
+
+                <span class="focus-status" id="focus-status">READY</span>
+
+                <time class="focus-timer" id="focus-timer" datetime="PT25M">
+                  25:00
+                </time>
+
+                <p class="focus-timer-description" id="focus-timer-description">
+                  Stay focused on the current task.
                 </p>
+
               </div>
 
-              <button
-                class="icon-button"
-                type="button"
-                aria-label="Close focus mode"
-              >
-                ×
-              </button>
+
+              <div class="focus-actions">
+
+                <button
+                  class="button button-secondary"
+                  type="button"
+                  id="focus-toggle-button"
+                >
+                  Start
+                </button>
+
+                <button
+                  class="button button-primary"
+                  type="button"
+                  id="focus-complete-button"
+                >
+                  Complete task
+                </button>
+
+              </div>
+
+
+              <div class="focus-progress">
+
+                <div class="focus-progress-header">
+                  <span>Session progress</span>
+                  <span class="mono" id="focus-progress-percent">0%</span>
+                </div>
+
+                <div class="progress-track">
+                  <div
+                    class="progress-fill progress-blue"
+                    id="focus-progress-fill"
+                    style="width: 0%;"
+                  ></div>
+                </div>
+
+                <div class="focus-progress-meta">
+                  <span id="focus-progress-elapsed">0:00 elapsed</span>
+                  <span>25:00 session</span>
+                </div>
+
+              </div>
 
             </div>
 
-
-            <div class="focus-timer-area">
-
-              <span class="focus-status">DEEP WORK</span>
-
-              <time class="focus-timer" datetime="PT1H42M18S">
-                01:42:18
-              </time>
-
-              <p class="focus-timer-description">
-                Stay focused on the current task.
+            <div class="focus-empty hidden" id="focus-empty">
+              <span class="placeholder-badge">No active task</span>
+              <h2 class="placeholder-title">Nothing to focus on</h2>
+              <p class="placeholder-description" id="focus-empty-description">
+                Select an incomplete task from the board, or create one first.
               </p>
-
-            </div>
-
-
-            <div class="focus-actions">
-
-              <button class="button button-secondary" type="button">
-                Pause
+              <button
+                class="button button-secondary"
+                type="button"
+                id="focus-empty-back"
+              >
+                Back to Overview
               </button>
-
-              <button class="button button-primary" type="button">
-                Complete task
-              </button>
-
-            </div>
-
-
-            <div class="focus-progress">
-
-              <div class="focus-progress-header">
-                <span>Today's progress</span>
-                <span class="mono">78%</span>
-              </div>
-
-              <div class="progress-track">
-                <div
-                  class="progress-fill progress-blue"
-                  style="width: 78%;"
-                ></div>
-              </div>
-
-              <div class="focus-progress-meta">
-                <span>4h 32m focused</span>
-                <span>5h 48m goal</span>
-              </div>
-
             </div>
 
           </div>

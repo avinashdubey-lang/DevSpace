@@ -1,7 +1,12 @@
 import { state } from "./state.js";
 import { createTask, updateTask, deleteTask } from "./tasks.js";
-import { renderKanban, renderView } from "./render.js";
+import { renderKanban, renderFocusSession, renderView } from "./render.js";
 import { saveTasks } from "./api.js";
+import {
+  completeFocusTask,
+  resolveFocusTask,
+  toggleFocusTimer
+} from "./focus.js";
 
 const kanbanBoard = document.querySelector("#kanban-board");
 
@@ -68,6 +73,17 @@ export function toggleMobileSidebar() {
   return false;
 }
 
+function enterFocusView() {
+  resolveFocusTask();
+  state.activeView = "focus";
+  renderView();
+}
+
+function leaveFocusToOverview() {
+  state.activeView = "overview";
+  renderView();
+}
+
 function handleSidebarClick(event) {
   const link = event.target.closest(".sidebar-link[data-view]");
 
@@ -82,6 +98,10 @@ function handleSidebarClick(event) {
   if (!view) return;
 
   if (state.activeView === view) return;
+
+  if (view === "focus") {
+    resolveFocusTask();
+  }
 
   state.activeView = view;
 
@@ -110,7 +130,39 @@ function handleKeydown(event) {
       editingTaskId = null;
       taskModalTitle.textContent = "Create task";
       taskModalSubmit.textContent = "Create task";
+      return;
     }
+
+    if (state.activeView === "focus") {
+      leaveFocusToOverview();
+    }
+  }
+}
+
+function handleFocusClick(event) {
+  if (event.target.closest("#overview-start-focus")) {
+    enterFocusView();
+    return;
+  }
+
+  if (event.target.closest("#focus-close-button, #focus-empty-back")) {
+    leaveFocusToOverview();
+    return;
+  }
+
+  if (event.target.closest("#focus-toggle-button")) {
+    toggleFocusTimer(renderFocusSession);
+    return;
+  }
+
+  if (event.target.closest("#focus-complete-button")) {
+    const result = completeFocusTask();
+
+    if (result.ok) {
+      renderKanban();
+    }
+
+    renderFocusSession();
   }
 }
 
@@ -125,6 +177,7 @@ export function initializeEvents() {
   document.addEventListener("click", handleAddTaskClick);
   document.addEventListener("click", handleTaskModalClick);
   document.addEventListener("click", handlePlaceholderClick);
+  document.addEventListener("click", handleFocusClick);
   mobileMenuButton?.addEventListener("click", toggleMobileSidebar);
   sidebarBackdrop?.addEventListener("click", closeMobileSidebar);
   document.addEventListener("keydown", handleKeydown);
@@ -252,6 +305,10 @@ function handleDeleteTask() {
     state.selectedTaskId = null;
   }
 
+  if (state.focusTaskId === editingTaskId) {
+    state.focusTaskId = null;
+  }
+
   saveTasks();
 
   createTaskForm.reset();
@@ -263,6 +320,10 @@ function handleDeleteTask() {
   deleteTaskButton.hidden = true;
 
   renderKanban();
+
+  if (state.activeView === "focus") {
+    renderFocusSession();
+  }
 }
 
 
@@ -346,6 +407,10 @@ function handleDrop(event) {
 
   saveTasks();
   renderKanban();
+
+  if (state.activeView === "focus") {
+    renderFocusSession();
+  }
 }
 
 function handleDragEnd() {

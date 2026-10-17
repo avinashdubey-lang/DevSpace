@@ -15,6 +15,19 @@ import {
   isValidTask,
   STORAGE_KEY
 } from "./js/api.js";
+import {
+  FOCUS_DURATION_MS,
+  cleanupFocusTimer,
+  completeFocusTask,
+  configureFocusTimer,
+  getFocusTimerState,
+  pauseFocusTimer,
+  resetFocusTimer,
+  resolveFocusTask,
+  restoreFocusTimerHooks,
+  startFocusTimer,
+  syncFocusTask
+} from "./js/focus.js";
 
 // Canonical snapshot of sample tasks to reset state between tests.
 const SAMPLE_TASKS_SNAPSHOT = [
@@ -105,8 +118,12 @@ beforeEach(() => {
   // Deep clone initial tasks to ensure clean isolation
   state.tasks = JSON.parse(JSON.stringify(SAMPLE_TASKS_SNAPSHOT));
   state.selectedTaskId = null;
+  state.focusTaskId = null;
   state.loading = false;
   state.error = null;
+  state.activeView = "overview";
+  restoreFocusTimerHooks();
+  resetFocusTimer();
 
   mockStorage = createMockLocalStorage();
   globalThis.localStorage = mockStorage;
@@ -723,4 +740,206 @@ test("Phase 1: Mobile sidebar drawer toggle updates body class and aria-expanded
       delete globalThis.document;
     }
   }
+});
+
+function createFakeFocusClock(startTime = 1_000_000) {
+  let now = startTime;
+  const intervals = [];
+
+  return {
+    get now() {
+      return now;
+    },
+    get intervals() {
+      return intervals;
+    },
+    advance(ms) {
+      now += ms;
+    },
+    tick() {
+      intervals.slice().forEach(entry => entry.callback());
+    },
+    hooks: {
+      now: () => now,
+      setInterval(callback) {
+        const entry = { callback };
+        intervals.push(entry);
+        return entry;
+      },
+      clearInterval(id) {
+        const index = intervals.indexOf(id);
+        if (index !== -1) {
+          intervals.splice(index, 1);
+        }
+      }
+    }
+  };
+}
+
+test("Focus timer starts at 25:00 and is idle", () => {
+  const timer = getFocusTimerState();
+
+  assert.equal(timer.remainingMs, FOCUS_DURATION_MS);
+  assert.equal(timer.running, false);
+  assert.equal(timer.phase, "idle");
+  assert.equal(timer.display, "25:00");
+});
+
+test("Focus timer start uses elapsed time from an injectable clock", () => {
+  const clock = createFakeFocusClock();
+  configureFocusTimer(clock.hooks);
+
+  startFocusTimer();
+  clock.advance(5_000);
+  clock.tick();
+
+  const timer = getFocusTimerState();
+  assert.equal(timer.running, true);
+  assert.equal(timer.phase, "running");
+  assert.equal(timer.remainingMs, FOCUS_DURATION_MS - 5_000);
+  assert.equal(timer.display, "24:55");
+});
+
+test("Focus timer start while running does not create a duplicate interval", () => {
+  const clock = createFakeFocusClock();
+  configureFocusTimer(clock.hooks);
+
+  startFocusTimer();
+  startFocusTimer();
+  startFocusTimer();
+
+  assert.equal(clock.intervals.length, 1);
+
+  clock.advance(1_000);
+  clock.tick();
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 1_000);
+});
+
+test("Focus timer pause freezes remaining time and resume continues from there", () => {
+  const clock = createFakeFocusClock();
+  configureFocusTimer(clock.hooks);
+
+  startFocusTimer();
+  clock.advance(10_000);
+  clock.tick();
+  pauseFocusTimer();
+
+  assert.equal(getFocusTimerState().running, false);
+  assert.equal(getFocusTimerState().phase, "paused");
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 10_000);
+  assert.equal(clock.intervals.length, 0);
+
+  clock.advance(8_000);
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 10_000);
+
+  startFocusTimer();
+  clock.advance(3_000);
+  clock.tick();
+
+  assert.equal(getFocusTimerState().running, true);
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 13_000);
+});
+
+test("Focus timer stops at zero and never goes negative", () => {
+  const clock = createFakeFocusClock();
+  configureFocusTimer(clock.hooks);
+
+  startFocusTimer();
+  clock.advance(FOCUS_DURATION_MS + 4_000);
+  clock.tick();
+
+  const timer = getFocusTimerState();
+  assert.equal(timer.remainingMs, 0);
+  assert.equal(timer.running, false);
+  assert.equal(timer.phase, "finished");
+  assert.equal(timer.display, "00:00");
+  assert.equal(clock.intervals.length, 0);
+
+  clock.advance(2_000);
+  assert.equal(getFocusTimerState().remainingMs, 0);
+});
+
+test("Closing Focus Mode cleans up the interval and preserves remaining time", () => {
+  const clock = createFakeFocusClock();
+  configureFocusTimer(clock.hooks);
+
+  startFocusTimer();
+  clock.advance(12_000);
+  clock.tick();
+
+  cleanupFocusTimer();
+
+  assert.equal(clock.intervals.length, 0);
+  assert.equal(getFocusTimerState().running, false);
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 12_000);
+
+  clock.advance(20_000);
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 12_000);
+
+  startFocusTimer();
+  clock.advance(1_000);
+  clock.tick();
+  assert.equal(getFocusTimerState().remainingMs, FOCUS_DURATION_MS - 13_000);
+});
+
+test("Completing the associated focus task uses updateTask, marks done, and persists", () => {
+  const task = resolveFocusTask();
+  assert.equal(task.id, "API-028");
+  assert.equal(state.focusTaskId, "API-028");
+
+  const result = completeFocusTask();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.saved, true);
+  assert.equal(result.task.status, "done");
+  assert.equal(result.task.completed, true);
+  assert.equal(state.focusTaskId, null);
+
+  const stored = JSON.parse(globalThis.localStorage.getItem(STORAGE_KEY));
+  const savedTask = stored.find(item => item.id === "API-028");
+  assert.equal(savedTask.status, "done");
+  assert.equal(savedTask.completed, true);
+
+  const duplicate = completeFocusTask();
+  assert.equal(duplicate.ok, false);
+  assert.equal(duplicate.reason, "missing");
+});
+
+test("Focus task association handles a missing or deleted task without throwing", () => {
+  state.focusTaskId = "MISSING-TASK";
+  assert.equal(syncFocusTask(), null);
+  assert.equal(state.focusTaskId, null);
+
+  const missing = completeFocusTask();
+  assert.equal(missing.ok, false);
+  assert.equal(missing.reason, "missing");
+
+  const created = resolveFocusTask();
+  assert.equal(created.id, "API-028");
+  deleteTask("API-028");
+  assert.equal(syncFocusTask(), null);
+  assert.equal(state.focusTaskId, null);
+
+  const afterDelete = completeFocusTask();
+  assert.equal(afterDelete.ok, false);
+  assert.equal(afterDelete.reason, "missing");
+});
+
+test("resolveFocusTask prefers the selected incomplete task, then in-progress", () => {
+  state.selectedTaskId = "DEV-138";
+  assert.equal(resolveFocusTask().id, "DEV-138");
+
+  state.selectedTaskId = "DEV-129";
+  state.focusTaskId = null;
+  assert.equal(resolveFocusTask().id, "API-028");
+
+  state.tasks = state.tasks.map(task => ({
+    ...task,
+    status: "done",
+    completed: true
+  }));
+  state.selectedTaskId = null;
+  state.focusTaskId = null;
+  assert.equal(resolveFocusTask(), null);
+  assert.equal(state.focusTaskId, null);
 });

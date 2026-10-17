@@ -57,6 +57,7 @@ export const state = {
   ],
 
   selectedTaskId: null,
+  focusTaskId: null,
   loading: false,
   error: null,
   activeView: "overview"
